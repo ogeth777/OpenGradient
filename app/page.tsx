@@ -37,8 +37,10 @@ export default function Home() {
           transition={{ duration: 1.5, delay: 0.5 }}
           className="absolute left-[-10%] md:left-[5%] top-1/4 w-64 h-64 md:w-96 md:h-96 pointer-events-none"
         >
-           <motion.div
-             className="w-full h-full"
+           <motion.img
+             src="/bg-logo.png"
+             alt="Background Logo Left"
+             className="w-full h-full object-contain opacity-30 drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]"
              animate={{ 
                y: [0, -20, 0],
                rotate: [0, 5, 0]
@@ -48,9 +50,7 @@ export default function Home() {
                repeat: Infinity, 
                ease: "easeInOut" 
              }}
-           >
-             <BackgroundLogo className="w-full h-full text-cyan-500/30 drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]" />
-           </motion.div>
+           />
         </motion.div>
 
         <motion.div 
@@ -59,8 +59,10 @@ export default function Home() {
           transition={{ duration: 1.5, delay: 0.5 }}
           className="absolute right-[-10%] md:right-[5%] bottom-1/4 w-64 h-64 md:w-96 md:h-96 pointer-events-none"
         >
-           <motion.div
-             className="w-full h-full"
+           <motion.img
+             src="/bg-logo.png"
+             alt="Background Logo Right"
+             className="w-full h-full object-contain opacity-30 drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]"
              animate={{ 
                y: [0, 20, 0],
                rotate: [0, -5, 0]
@@ -71,9 +73,7 @@ export default function Home() {
                ease: "easeInOut",
                delay: 1
              }}
-           >
-             <BackgroundLogo className="w-full h-full text-cyan-500/30 drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]" />
-           </motion.div>
+           />
         </motion.div>
 
         <motion.div
