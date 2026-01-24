@@ -5,6 +5,7 @@ import { Brain, BarChart3, Users, ExternalLink, ChevronDown, MessageCircle } fro
 import MouseGlow from "./components/MouseGlow";
 import NetworkBackground from "./components/NetworkBackground";
 import VideoModal from "./components/VideoModal";
+import BackgroundLogo from "./components/BackgroundLogo";
 import { useState } from "react";
 
 export default function Home() {
