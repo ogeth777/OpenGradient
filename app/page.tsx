@@ -166,7 +166,19 @@ export default function Home() {
             title="MemSync"
             subtitle="Your Eternal Memory for Any AI"
             videoSrc="/MemSync.mp4"
-            description="Imagine if ChatGPT, Claude, or any other AI remembered EVERYTHING about you: what you like, past conversations. MemSync is like a memory cloud that travels with you across different AIs. Everything is encrypted and yours alone."
+            description={
+              <>
+                Imagine if ChatGPT, Claude, or any other AI remembered EVERYTHING about you: what you like, past conversations. MemSync is like a memory cloud that travels with you across different AIs. Everything is encrypted and yours alone.{" "}
+                <a 
+                  href="https://x.com/0xDeltaHedged/status/1938239003565719668?s=20" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                >
+                  ...
+                </a>
+              </>
+            }
             link="https://app.memsync.ai/"
             gradient="from-purple-500/20 to-blue-500/5"
             borderColor="border-purple-500/30"
@@ -179,7 +191,19 @@ export default function Home() {
             title="Twin.fun"
             subtitle="Trade Digital Minds"
             imageSrc="/Twin.fun.PNG"
-            description="Trade onchain keys for AI digital twins modeled after real people's ideas. Key value grows with demand via a transparent bonding curve. Unlock chat, debate, and pitch access to these AI minds. Collaborate, learn, and earn from specialized intelligence."
+            description={
+              <>
+                Trade onchain keys for AI digital twins modeled after real people&apos;s ideas. Key value grows with demand via a transparent bonding curve. Unlock chat, debate, and pitch access to these AI minds. Collaborate, learn, and earn from specialized intelligence.{" "}
+                <a 
+                  href="https://x.com/OpenGradient/status/1991614858153062723?s=20" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                >
+                  ...
+                </a>
+              </>
+            }
             link="https://www.twin.fun"
             gradient="from-pink-500/20 to-rose-500/5"
             borderColor="border-pink-500/30"
@@ -191,7 +215,19 @@ export default function Home() {
             title="BitQuant"
             subtitle="Your Personal AI Quant"
             videoSrc="/BITQUAN.mp4"
-            description="Your personal AI Quant for DeFi. BitQuant leverages advanced machine learning and real time on chain data to democratize quantitative analysis. Simply ask in plain English 'Analyze token risk' or 'Optimize my portfolio' to get institutional grade insights, charts, and data driven strategies instantly."
+            description={
+              <>
+                Your personal AI Quant for DeFi. BitQuant leverages advanced machine learning and real time on chain data to democratize quantitative analysis. Simply ask in plain English &apos;Analyze token risk&apos; or &apos;Optimize my portfolio&apos; to get institutional grade insights, charts, and data driven strategies instantly.{" "}
+                <a 
+                  href="https://www.opengradient.ai/blog/meet-bitquant-crypto-ai-quant" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
+                >
+                  ...
+                </a>
+              </>
+            }
             link="https://www.bitquant.io/"
             gradient="from-blue-500/20 to-cyan-500/5"
             borderColor="border-blue-500/30"
@@ -207,8 +243,8 @@ export default function Home() {
           <h2 className="text-3xl font-bold mb-10 text-center">Why is this important for beginners?</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <FeatureItem text="Free tools to start in Web3 and AI" />
-            <FeatureItem text="The future belongs to users, not corporations" />
-            <FeatureItem text="Control your attention, memory, and trading" />
+            <FeatureItem text="Your personal AI Quant for DeFi with institutional-grade insights" />
+            <FeatureItem text="Control your attention and memory" />
             <FeatureItem text="Everything is open, transparent, and secure thanks to blockchain" />
           </div>
         </div>
