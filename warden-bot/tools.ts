@@ -700,10 +700,24 @@ export const terminal_swap = tool(
       // 3. Get Route
       console.log("Fetching KyberSwap route...");
       const routeUrl = `https://aggregator-api.kyberswap.com/base/api/v1/routes?tokenIn=${tokenInAddr}&tokenOut=${tokenOutAddr}&amountIn=${amountAtomic}`;
-      const routeRes = await axios.get(routeUrl, { timeout: 15000 });
       
-      if (!routeRes.data || routeRes.data.code !== 0) {
-          return `No swap route found: ${routeRes.data?.message || "Liquidity insufficient or pair not supported."}`;
+      let routeRes;
+      let retries = 0;
+      const MAX_RETRIES = 2;
+
+      while (retries <= MAX_RETRIES) {
+          try {
+              routeRes = await axios.get(routeUrl, { timeout: 15000 });
+              if (routeRes.data && routeRes.data.code === 0) break;
+          } catch (e) {
+              console.log(`Route fetch attempt ${retries + 1} failed, retrying...`);
+          }
+          retries++;
+          if (retries <= MAX_RETRIES) await new Promise(r => setTimeout(r, 1000));
+      }
+      
+      if (!routeRes || !routeRes.data || routeRes.data.code !== 0) {
+          return `No swap route found: ${routeRes?.data?.message || "Liquidity insufficient or pair not supported."}`;
       }
 
       // Calculate output amount for preview
@@ -727,7 +741,7 @@ export const terminal_swap = tool(
       const formattedOut = formatUnits(BigInt(amountOutAtomic), decimalsOut);
       const friendlyOut = parseFloat(formattedOut).toLocaleString(undefined, { maximumFractionDigits: 6 });
 
-      return `Свапаем ${amount} ${tokenIn.toUpperCase()} → ~${friendlyOut} ${tokenOut.toUpperCase()}.\nRoute found via KyberSwap. Slippage 1%.\n\n<SWAP_TX tokenIn="${tokenIn.toUpperCase()}" tokenOut="${tokenOut.toUpperCase()}" amount="${amount}" tokenInAddr="${tokenInAddr}" tokenOutAddr="${tokenOutAddr}" amountAtomic="${amountAtomic}" chain="base" />`;
+      return `Setting up efficient swap of ${amount} ${tokenIn.toUpperCase()} for ${tokenOut.toUpperCase()}... Optimal routing!\n\n<SWAP_TX tokenIn="${tokenIn.toUpperCase()}" tokenOut="${tokenOut.toUpperCase()}" amount="${amount}" tokenInAddr="${tokenInAddr}" tokenOutAddr="${tokenOutAddr}" amountAtomic="${amountAtomic}" chain="base" />`;
 
     } catch (error: any) {
       console.error("Swap tool error:", error);
