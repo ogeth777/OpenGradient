@@ -1,0 +1,13 @@
+Starting full agent test...
+Testing Agent with 'Swap 10 USDC for ETH'...
+--- RESPONSE START ---
+<SWAP_TX 
+        tokenIn="USDC" 
+        tokenOut="ETH" 
+        amount="10" 
+        tokenInAddr="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" 
+        tokenOutAddr="0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" 
+        amountAtomic="10000000" 
+        chain="base"
+      />
+--- RESPONSE END ---
