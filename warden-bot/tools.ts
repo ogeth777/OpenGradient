@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import axios from "axios";
-import { createWalletClient, createPublicClient, http, parseUnits, encodeFunctionData, erc20Abi, parseEther, hexToBigInt } from "viem";
+import { createWalletClient, createPublicClient, http, parseUnits, encodeFunctionData, erc20Abi, parseEther, hexToBigInt, formatEther, formatUnits } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 
@@ -56,6 +56,20 @@ function sanitizeImage(url: string | undefined | null, address?: string, chain?:
     }
     if (!url.startsWith("http")) return "";
     return url;
+}
+
+export async function checkEthBalance(address: string): Promise<number> {
+    try {
+        const client = createPublicClient({
+            chain: base,
+            transport: http()
+        });
+        const balance = await client.getBalance({ address: address as `0x${string}` });
+        return parseFloat(formatEther(balance));
+    } catch (e) {
+        console.error("Failed to check ETH balance:", e);
+        return 0;
+    }
 }
 
 export async function resolveTokenAddress(token: string, chain: string = "base"): Promise<string> {
@@ -685,14 +699,35 @@ export const terminal_swap = tool(
 
       // 3. Get Route
       console.log("Fetching KyberSwap route...");
-              const routeUrl = `https://aggregator-api.kyberswap.com/base/api/v1/routes?tokenIn=${tokenInAddr}&tokenOut=${tokenOutAddr}&amountIn=${amountAtomic}`;
-              const routeRes = await axios.get(routeUrl, { timeout: 15000 });
-              
-              if (!routeRes.data || routeRes.data.code !== 0) {
+      const routeUrl = `https://aggregator-api.kyberswap.com/base/api/v1/routes?tokenIn=${tokenInAddr}&tokenOut=${tokenOutAddr}&amountIn=${amountAtomic}`;
+      const routeRes = await axios.get(routeUrl, { timeout: 15000 });
+      
+      if (!routeRes.data || routeRes.data.code !== 0) {
           return `No swap route found: ${routeRes.data?.message || "Liquidity insufficient or pair not supported."}`;
       }
 
-      return `<SWAP_TX tokenIn="${tokenIn.toUpperCase()}" tokenOut="${tokenOut.toUpperCase()}" amount="${amount}" tokenInAddr="${tokenInAddr}" tokenOutAddr="${tokenOutAddr}" amountAtomic="${amountAtomic}" chain="base" />`;
+      // Calculate output amount for preview
+      const routeSummary = routeRes.data.data.routeSummary;
+      const amountOutAtomic = routeSummary.amountOut;
+      
+      // Fetch decimals for tokenOut to format preview
+      let decimalsOut = 18;
+      if (TOKEN_DECIMALS[tokenOutAddr]) {
+          decimalsOut = TOKEN_DECIMALS[tokenOutAddr];
+      } else if (tokenOutAddr !== NATIVE_ETH) {
+          try {
+             decimalsOut = await publicClient.readContract({
+                 address: tokenOutAddr as `0x${string}`,
+                 abi: erc20Abi,
+                 functionName: 'decimals'
+             });
+          } catch (e) { console.log("Failed to fetch output decimals"); }
+      }
+
+      const formattedOut = formatUnits(BigInt(amountOutAtomic), decimalsOut);
+      const friendlyOut = parseFloat(formattedOut).toLocaleString(undefined, { maximumFractionDigits: 6 });
+
+      return `Свапаем ${amount} ${tokenIn.toUpperCase()} → ~${friendlyOut} ${tokenOut.toUpperCase()}.\nRoute found via KyberSwap. Slippage 1%.\n\n<SWAP_TX tokenIn="${tokenIn.toUpperCase()}" tokenOut="${tokenOut.toUpperCase()}" amount="${amount}" tokenInAddr="${tokenInAddr}" tokenOutAddr="${tokenOutAddr}" amountAtomic="${amountAtomic}" chain="base" />`;
 
     } catch (error: any) {
       console.error("Swap tool error:", error);

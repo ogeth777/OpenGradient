@@ -18,6 +18,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     let prompt = body.prompt || body.input || body.message;
+    const userAddress = body.address;
 
     // Handle LangGraph structure: { input: { messages: [...] } }
     if (typeof prompt === 'object' && prompt !== null && !Array.isArray(prompt)) {
@@ -44,7 +45,7 @@ export async function POST(req: Request) {
 
     let response;
     try {
-        response = await processAgentRequest(prompt);
+        response = await processAgentRequest(prompt, userAddress);
     } catch (agentError: any) {
         console.error("Uncaught Agent Error:", agentError);
         response = `**FATAL ERROR**\n\n${agentError.message || "Unknown system failure."}`;
