@@ -127,21 +127,48 @@ export default function Home() {
       }
     }
 
-    // Check for <SWAP_TX> tag (New Native Swap)
-    const swapTxMatch = cleanContent.match(/<SWAP_TX\s+tokenIn="([^"]+)"\s+tokenOut="([^"]+)"\s+amount="([^"]+)"\s+tokenInAddr="([^"]+)"\s+tokenOutAddr="([^"]+)"\s+amountAtomic="([^"]+)"\s+chain="([^"]+)"\s*\/?>/i) ||
-                        cleanContent.match(/<SWAP_TX\s+[\s\S]*?tokenIn="([^"]+)"[\s\S]*?tokenOut="([^"]+)"[\s\S]*?amount="([^"]+)"[\s\S]*?tokenInAddr="([^"]+)"[\s\S]*?tokenOutAddr="([^"]+)"[\s\S]*?amountAtomic="([^"]+)"[\s\S]*?chain="([^"]+)"[\s\S]*?\/?>/i);
+    // Robust SWAP_TX Extraction
+    // 1. Cleanup: Remove markdown code blocks wrapping the tag to prevent regex failure
+    if (cleanContent.includes("<SWAP_TX") && cleanContent.includes("```")) {
+         cleanContent = cleanContent.replace(/```[a-z]*\s*(<SWAP_TX[\s\S]*?>)\s*```/gi, '$1');
+    }
+
+    // 2. Extraction: Capture the tag and attributes string
+    const swapTxMatch = cleanContent.match(/<SWAP_TX([\s\S]*?)\/?>/i);
     let swapTxData = null;
+
     if (swapTxMatch) {
-        swapTxData = {
-            tokenIn: swapTxMatch[1],
-            tokenOut: swapTxMatch[2],
-            amount: swapTxMatch[3],
-            tokenInAddr: swapTxMatch[4],
-            tokenOutAddr: swapTxMatch[5],
-            amountAtomic: swapTxMatch[6],
-            chain: swapTxMatch[7]
+        const attrs = swapTxMatch[1];
+        
+        // Helper to extract attribute values (supports " and ')
+        const getAttr = (name: string) => {
+            const match = attrs.match(new RegExp(`${name}="([^"]*)"`, 'i')) || 
+                          attrs.match(new RegExp(`${name}='([^']*)'`, 'i'));
+            return match ? match[1] : null;
         };
-        cleanContent = cleanContent.replace(swapTxMatch[0], "").trim();
+
+        const tokenIn = getAttr('tokenIn');
+        const tokenOut = getAttr('tokenOut');
+        const amount = getAttr('amount');
+        const tokenInAddr = getAttr('tokenInAddr');
+        const tokenOutAddr = getAttr('tokenOutAddr');
+        const amountAtomic = getAttr('amountAtomic');
+        const chain = getAttr('chain');
+
+        // Verify we have minimal required data
+        if (tokenIn && tokenOut && amount && tokenInAddr && tokenOutAddr) {
+            swapTxData = {
+                tokenIn,
+                tokenOut,
+                amount,
+                tokenInAddr,
+                tokenOutAddr,
+                amountAtomic: amountAtomic || "0",
+                chain: chain || "base"
+            };
+            // Remove the tag from the displayed text so it doesn't duplicate
+            cleanContent = cleanContent.replace(swapTxMatch[0], "").trim();
+        }
     }
 
     // Check for <SWAP_WIDGET> tag (Legacy/External Link)
