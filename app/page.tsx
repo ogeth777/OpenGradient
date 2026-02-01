@@ -319,7 +319,7 @@ export default function Home() {
                     {msg.role === 'user' ? (
                       <>USER <span className="w-1 h-1 bg-green-500 rounded-full" /></>
                     ) : (
-                      <><Cpu className="w-3 h-3" /> NEXUS CORE</>
+                      <><Cpu className="w-3 h-3" /> TERMINAL AI</>
                     )}
                   </div>
                   {renderMessageContent(msg.content)}
