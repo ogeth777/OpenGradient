@@ -138,12 +138,15 @@ export default function Home() {
     let swapTxData = null;
 
     if (swapTxMatch) {
+        // ALWAYS remove the tag from the displayed text so it doesn't duplicate or show raw code
+        cleanContent = cleanContent.replace(swapTxMatch[0], "").trim();
+
         const attrs = swapTxMatch[1];
         
-        // Helper to extract attribute values (supports " and ')
+        // Helper to extract attribute values (supports " and ', and spaces)
         const getAttr = (name: string) => {
-            const match = attrs.match(new RegExp(`${name}="([^"]*)"`, 'i')) || 
-                          attrs.match(new RegExp(`${name}='([^']*)'`, 'i'));
+            const match = attrs.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i')) || 
+                          attrs.match(new RegExp(`${name}\\s*=\\s*'([^']*)'`, 'i'));
             return match ? match[1] : null;
         };
 
@@ -166,8 +169,6 @@ export default function Home() {
                 amountAtomic: amountAtomic || "0",
                 chain: chain || "base"
             };
-            // Remove the tag from the displayed text so it doesn't duplicate
-            cleanContent = cleanContent.replace(swapTxMatch[0], "").trim();
         }
     }
 
