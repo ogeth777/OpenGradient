@@ -339,6 +339,26 @@ export default function Home() {
 
           {/* Input Area */}
           <div className="p-4 border-t border-green-900/30 bg-black/80 backdrop-blur">
+            {/* Quick Suggestions */}
+            <div className="flex gap-2 mb-3 max-w-4xl mx-auto overflow-x-auto pb-1 scrollbar-none">
+              {[
+                { label: "Trending Tokens", cmd: "What are the trending tokens on Base?" },
+                { label: "Yield Farming", cmd: "Find best yield opportunities on Base" },
+                { label: "Risk Analysis", cmd: "START_RISK_ANALYSIS" },
+                { label: "Top Gainers", cmd: "Show me top gainers on Base" },
+                { label: "Portfolio", cmd: "Analyze my portfolio with DeBank" },
+                { label: "Menu", cmd: "Menu" }
+              ].map((chip, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSuggestionClick(chip.cmd)}
+                  className="whitespace-nowrap px-3 py-1.5 bg-green-900/10 border border-green-800/50 hover:border-green-400 hover:bg-green-500/10 text-green-500 hover:text-green-300 rounded-sm text-[10px] md:text-xs uppercase tracking-wider transition-all"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
             <form onSubmit={handleSubmit} className="flex gap-4 max-w-4xl mx-auto">
               <div className="relative flex-1">
                 <input
