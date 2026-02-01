@@ -61,7 +61,7 @@ export async function processAgentRequest(userPrompt: string) {
         }
         else if (lowerPrompt.includes("yield") || lowerPrompt.includes("farming") || lowerPrompt.includes("apy")) {
            const chain = lowerPrompt.includes("solana") ? "solana" : "base";
-           const rawResult = await getYieldOpportunitiesTool.invoke({ chain });
+           const rawResult = await getYieldOpportunitiesTool.invoke({ chain }) as string;
            try {
              const data = JSON.parse(rawResult);
              if (Array.isArray(data)) {
@@ -131,7 +131,7 @@ export async function processAgentRequest(userPrompt: string) {
 
                // 1. Try Token Risk Analysis
                try {
-                   const riskResult = await evaluateTokenRiskTool.invoke({ token: address, chain });
+                   const riskResult = await evaluateTokenRiskTool.invoke({ token: address, chain }) as string;
                    const riskData = JSON.parse(riskResult);
                    
                    if (!riskData.error && riskData.risk_analysis) {
