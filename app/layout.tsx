@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "OpenGradient The Future of AI on Blockchain",
-  description: "Learn about MemSync, BitQuant, and Twin.fun in 5 minutes",
+  title: "TERMINAL AI",
+  description: "Crypto terminal on Base: Risk analysis, Yields, Portfolio.",
 };
 
 export default function RootLayout({
