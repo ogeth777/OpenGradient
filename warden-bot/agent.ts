@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, terminal_balance, fetchTopGainers, fetchTrendingTokens, checkEthBalance } from "./tools";
+import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, fetchTopGainers, fetchTrendingTokens, checkEthBalance } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string, userAddress?: string) {
@@ -9,40 +9,6 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
   }
 
   const lowerPrompt = userPrompt.toLowerCase().trim();
-
-  // 0.0.1 Interactive Swap/Buy Flow - Direct Bypass
-  // Check if it's a swap command to avoid LLM overhead/failure
-  if (lowerPrompt.includes("swap") || lowerPrompt.includes("buy") || lowerPrompt.includes("sell") || lowerPrompt.includes("поменяй") || lowerPrompt.includes("купи") || lowerPrompt.includes("продай")) {
-      
-      // CRITICAL: Check ETH Balance if address is known
-      if (userAddress) {
-          const ethBal = await checkEthBalance(userAddress);
-          if (ethBal < 0.0005) {
-              return "Недостаточно ETH для газа! Пополни баланс хотя бы 0.001 ETH и попробуй снова.";
-          }
-      }
-
-      const swapMatch = userPrompt.match(/swap\s+(\d+(?:\.\d+)?)\s+([a-z0-9]+)\s+(?:for|to)\s+([a-z0-9]+)/i);
-      const buyMatch = userPrompt.match(/buy\s+([a-z0-9]+)\s+with\s+(\d+(?:\.\d+)?)\s+([a-z0-9]+)/i);
-      // Simple regex for "Sell X for Y"
-      const sellMatch = userPrompt.match(/sell\s+(\d+(?:\.\d+)?)\s+([a-z0-9]+)\s+(?:for|to)\s+([a-z0-9]+)/i);
-
-      if (swapMatch) {
-          const [_, amount, tokenIn, tokenOut] = swapMatch;
-          return await terminal_swap.invoke({ tokenIn, tokenOut, amount, chain: "base" }) as string;
-      }
-      if (buyMatch) {
-          const [_, tokenOut, amount, tokenIn] = buyMatch;
-          return await terminal_swap.invoke({ tokenIn, tokenOut, amount, chain: "base" }) as string;
-      }
-      if (sellMatch) {
-          const [_, amount, tokenIn, tokenOut] = sellMatch;
-          return await terminal_swap.invoke({ tokenIn, tokenOut, amount, chain: "base" }) as string;
-      }
-      
-      // If no regex match but contains swap/buy, fall through to LLM
-      // We removed the help text block to allow LLM to handle complex queries like "Swap all my DEGEN"
-  }
 
   // 0.1 Greeting / Menu Interception
   const greetings = ["hello", "hi", "hey", "start", "menu", "help", "commands", "привет"];
@@ -74,6 +40,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       terminal_top_gainers,
       terminal_quote,
       terminal_swap,
+      execute_swap,
       terminal_balance
     ];
 
@@ -82,27 +49,30 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 
     const systemMessage = {
       role: "system",
-      content: `You are a Trae-built Warden Custom Swap Agent for Base chain swaps via Uniswap API and Warden internal wallet. NEVER output raw XML like <SWAP_TX> — always use human-readable preview messages that trigger Warden/Trae UI for approval. Mimic the built-in Uniswap agent's flow: parse command, check balances, get quote, show preview summary, require approval, execute on confirm, show success details.
+      content: `You are a Trae-built Warden Custom Swap Agent for Base chain swaps via Uniswap API.
+NEVER output JSON, XML, <SWAP_TX>, structured tags or raw data in chat messages. Always respond in plain, friendly text.
 
-Core Rules:
-- Parse natural language: "Swap 0.001 ETH for USDC" → extract amount, tokenIn, tokenOut.
-- Always check ETH balance >0.0005 for gas; refuse if low.
-- Use Uniswap API for quote (via uniswap_quote tool); prefer WETH routing.
-- Output preview as JSON-structured message for UI: {type: 'swap_preview', selling: '...', receiving: '...', gasFee: '...', rate: '...', chain: 'Base', requiresApproval: true}.
-- On simulated approval: Execute tx via Warden Keychain.
-- If error: Friendly message, no raw tags.
-- Start: "Hi! Ready to swap on Base. What to trade?"
+When user asks for swap:
+1. Parse amount, tokenIn, tokenOut.
+2. Say: "Setting up efficient swap of [amount] [tokenIn] for [tokenOut] on Base... Optimal routing!"
+3. Call 'uniswap_quote' tool to get the rate/details.
+4. Reply with text preview: 
+   "Selling: [amount] [tokenIn]
+    Receiving: ~[est output] [tokenOut]
+    Gas: ~$0.XX
+    Rate: 1 [tokenIn] ≈ [rate] [tokenOut]
+    Chain: Base
+    
+    Do you want to proceed? Reply APPROVE to confirm or REJECT to cancel."
 
-Execution Step-by-Step:
-1. Parse input.
-2. Balance checks.
-3. Quote with retry (3x).
-4. Reply: "Setting up efficient swap of [amount] [tokenIn] for [tokenOut]... Optimal routing!"
-5. Then: JSON preview for UI card.
-6. Wait approval (in Trae, simulate with user reply "Approve").
-7. Execute & success summary like Uniswap: "Your swap has been successfully completed! Here are the details: Swap Summary... Transaction Details... Next Steps..."
+5. If user says APPROVE:
+   - Call 'execute_swap' tool.
+   - Show success summary from the tool output.
 
-Trae Config: Use tools for uniswap_quote, balance_query. No raw TX output — only previews.`
+6. If user says REJECT:
+   - Say "Swap cancelled."
+
+No structured output — Warden UI will not trigger from text, so we use this text-based confirmation flow.`
     };
 
     try {

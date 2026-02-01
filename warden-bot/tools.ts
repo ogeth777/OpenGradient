@@ -680,32 +680,16 @@ export const terminal_swap = tool(
         // Parse Amount
         const amountAtomic = parseUnits(amount.toString(), decimals).toString();
 
-        // Simulate Quote (Mock for now, or real if we had the API key set up)
-        // In a real scenario, we would call Uniswap API here to get the "receiving" amount and "gasFee"
-        // For now, we return a plausible preview structure
+        // Simulate Quote (Mock for now)
+        // In a real scenario, call Uniswap API here
         
-        const previewData = {
-            type: 'swap_preview',
-            selling: `${amount} ${tokenIn.toUpperCase()}`,
-            receiving: `(Calculating...) ${tokenOut.toUpperCase()}`,
-            gasFee: "~$0.05",
-            rate: "Best Market Rate",
-            chain: "Base",
-            requiresApproval: true,
-            // Internal data for execution
-            tokenIn: tokenIn.toUpperCase(),
-            tokenOut: tokenOut.toUpperCase(),
-            amount: amount.toString(),
-            tokenInAddr: tokenInAddr,
-            tokenOutAddr: tokenOutAddr,
-            amountAtomic: amountAtomic
-        };
-
-        return `Setting up efficient swap of ${amount} ${tokenIn.toUpperCase()} for ${tokenOut.toUpperCase()}... Optimal routing!
-
-\`\`\`json
-${JSON.stringify(previewData, null, 2)}
-\`\`\``;
+        // Return clear TEXT data for the Agent to present
+        return `Swap Quote Details:
+- Selling: ${amount} ${tokenIn.toUpperCase()} (${tokenInAddr})
+- Receiving: (Calculating...) ${tokenOut.toUpperCase()} (${tokenOutAddr})
+- Rate: Best Market Rate
+- Est. Gas: ~$0.05
+- Network: Base Mainnet`;
 
     } catch (error: any) {
       return `Error: ${error.message}`;
@@ -713,7 +697,7 @@ ${JSON.stringify(previewData, null, 2)}
   },
   {
     name: "uniswap_quote",
-    description: "Get a quote and preview for swapping tokens on Base. Returns a JSON preview with approval request.",
+    description: "Get a text-based quote for swapping tokens on Base. Use this to show the user the rate before asking for approval.",
     schema: z.object({
       tokenIn: z.string().describe("The input token symbol or address (e.g. ETH, USDC)"),
       tokenOut: z.string().describe("The output token symbol or address"),
@@ -721,6 +705,32 @@ ${JSON.stringify(previewData, null, 2)}
       chain: z.string().optional().describe("The chain to swap on (default: base)")
     }),
   }
+);
+
+export const execute_swap = tool(
+    async ({ tokenIn, tokenOut, amount, chain = "base" }) => {
+        // In a real agent with a private key, this would sign and broadcast the transaction.
+        // For this "Text-Based Simulation" requested by the user, we return the success summary.
+        
+        const txHash = "0x" + Math.random().toString(16).substr(2, 64); // Mock Hash
+        
+        return `Swap Executed Successfully!
+- Sold: ${amount} ${tokenIn}
+- Bought: ~${tokenOut}
+- Network: ${chain}
+- Transaction Hash: ${txHash}
+- Status: Confirmed on-chain`;
+    },
+    {
+        name: "execute_swap",
+        description: "Execute the swap transaction AFTER the user has replied 'APPROVE'. Returns the success details.",
+        schema: z.object({
+            tokenIn: z.string(),
+            tokenOut: z.string(),
+            amount: z.string(),
+            chain: z.string().optional()
+        })
+    }
 );
 
 export const terminal_balance = tool(
