@@ -5,7 +5,7 @@ import { processAgentRequest } from '@/warden-bot/agent';
 function setCorsHeaders(res: NextResponse) {
   res.headers.set('Access-Control-Allow-Origin', '*');
   res.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
+  res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key, openai-organization, openai-project');
   return res;
 }
 
@@ -17,50 +17,65 @@ export async function OPTIONS() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    console.log("Received /api/terminal/runs/stream request:", JSON.stringify(body, null, 2));
+    console.log("[STREAM_DEBUG] Request Body:", JSON.stringify(body, null, 2));
 
     // Extract input
-    const messages = body.input?.messages || [];
-    const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
+    // LangGraph often sends input inside "input" object
+    const inputPayload = body.input || body;
+    const messages = inputPayload.messages || [];
+    
+    // Determine user prompt
     let userPrompt = "Hello";
-    if (lastMessage && lastMessage.content) {
-        userPrompt = typeof lastMessage.content === 'string' 
-            ? lastMessage.content 
-            : JSON.stringify(lastMessage.content);
+    if (messages.length > 0) {
+        const lastMsg = messages[messages.length - 1];
+        userPrompt = typeof lastMsg.content === 'string' ? lastMsg.content : JSON.stringify(lastMsg.content);
+    } else if (typeof inputPayload === 'string') {
+        userPrompt = inputPayload;
     }
+    
+    console.log("[STREAM_DEBUG] User Prompt:", userPrompt);
 
+    // Get Agent Response
     let agentResponse;
     try {
         agentResponse = await processAgentRequest(userPrompt);
     } catch (agentError: any) {
-        agentResponse = `**SYSTEM ERROR**\n\n${agentError.message || "Unknown error occurred."}`;
+        console.error("[STREAM_DEBUG] Agent Error:", agentError);
+        agentResponse = `Error: ${agentError.message || "Unknown error"}`;
     }
 
-    // Create a stream using standard SSE format
+    console.log("[STREAM_DEBUG] Agent Response:", agentResponse);
+
+    // Create a stream
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
-        
-        // 1. Send 'metadata' event
-        const metadata = { run_id: crypto.randomUUID() };
+        const runId = crypto.randomUUID();
+        const threadId = body.thread_id || crypto.randomUUID();
+
+        // 1. Metadata event
+        const metadata = { run_id: runId, thread_id: threadId };
         controller.enqueue(encoder.encode(`event: metadata\ndata: ${JSON.stringify(metadata)}\n\n`));
 
-        // 2. Send 'values' event (This is what LangGraph UI renders)
-        const values = {
+        // 2. Messages event (Simulating a "chunk" of a message)
+        // LangGraph clients often look for 'messages/complete' or just updates to 'values'
+        
+        // We will send a 'values' event which updates the state
+        const valuesEvent = {
             messages: [
                 ...messages,
                 {
                     role: "assistant",
                     content: agentResponse,
                     id: crypto.randomUUID(),
-                    type: "ai"
+                    type: "ai",
+                    response_metadata: { finish_reason: "stop" }
                 }
             ]
         };
-        // CRITICAL: Double newline \n\n is required for SSE
-        controller.enqueue(encoder.encode(`event: values\ndata: ${JSON.stringify(values)}\n\n`));
+        controller.enqueue(encoder.encode(`event: values\ndata: ${JSON.stringify(valuesEvent)}\n\n`));
 
-        // 3. Send 'end' event to close the connection properly
+        // 3. End event
         controller.enqueue(encoder.encode(`event: end\ndata: {}\n\n`));
         controller.close();
       }
@@ -72,12 +87,13 @@ export async function POST(req: Request) {
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'Access-Control-Allow-Origin': '*',
+        'X-Accel-Buffering': 'no', // Disable buffering for Nginx/Vercel
       },
     });
 
-  } catch (error) {
-    console.error('API Error:', error);
-    const res = NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } catch (error: any) {
+    console.error('[STREAM_DEBUG] API Fatal Error:', error);
+    const res = NextResponse.json({ error: "Internal Server Error", details: error.message }, { status: 500 });
     return setCorsHeaders(res);
   }
 }
