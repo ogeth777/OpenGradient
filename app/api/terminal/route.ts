@@ -89,7 +89,8 @@ export async function GET() {
         "Find best yield farming pools",
         "Show me top gainers",
         "Analyze my portfolio"
-    ]
+    ],
+    url: "https://terminalai-omega.vercel.app/api/terminal"
   });
   return setCorsHeaders(res);
 }

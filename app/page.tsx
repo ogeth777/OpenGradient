@@ -27,6 +27,9 @@ export default function Home() {
   const [sessionId, setSessionId] = useState("");
   const [marketData, setMarketData] = useState<{ trending: any[], yields: any[] }>({ trending: [], yields: [] });
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Hardcoded API URL for display
+  const AGENT_API_URL = "https://terminalai-omega.vercel.app/api/terminal";
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -245,6 +248,20 @@ export default function Home() {
             <p className="text-xs text-green-600">v2.4.0 // CONNECTED</p>
           </div>
         </div>
+
+        {/* API Endpoint Display */}
+        <div className="hidden md:flex items-center gap-2 bg-green-900/20 px-3 py-1 rounded border border-green-800/50">
+          <span className="text-xs text-green-600 font-mono">AGENT API:</span>
+          <code className="text-xs text-green-400 font-mono select-all">{AGENT_API_URL}</code>
+          <button 
+              onClick={() => copyToClipboard(AGENT_API_URL)}
+              className="ml-2 text-green-600 hover:text-green-300 transition-colors"
+              title="Copy API URL"
+          >
+              <ExternalLink className="w-3 h-3" />
+          </button>
+        </div>
+
         <div className="flex gap-6 text-xs uppercase tracking-widest items-center">
           <button 
             onClick={handleReset}
