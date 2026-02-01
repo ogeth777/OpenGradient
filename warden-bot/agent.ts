@@ -8,6 +8,30 @@ export async function processAgentRequest(userPrompt: string) {
       return "Let's get the ball rolling. Which token on Base are you looking at? I need the token's name or symbol to fetch its metadata.";
   }
 
+  // 0.1 Greeting / Menu Interception
+  const greetings = ["hello", "hi", "hey", "start", "menu", "help", "commands"];
+  if (greetings.includes(userPrompt.toLowerCase().trim())) {
+      return `**TERMINAL AI v1.0 ONLINE.**
+AVAILABLE PROTOCOLS:
+
+> **Trending Tokens on Base**
+  *Fetch currently hot tokens*
+  
+> **Yield Farming Opportunities**
+  *Find best APY pools on Base*
+  
+> **Risk Analysis**
+  *e.g. "Risk BRETT" or "Analyze DEGEN"*
+  
+> **Top Gainers**
+  *See 24h price winners*
+
+> **Analyze Portfolio**
+  *Check your wallet balance*
+
+_System ready. Awaiting input..._`;
+  }
+
   try {
     const { WardenAgentKit } = await import("@wardenprotocol/warden-agent-kit-core");
     const { WardenToolkit } = await import("@wardenprotocol/warden-langchain");
