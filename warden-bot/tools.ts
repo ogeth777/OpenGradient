@@ -53,27 +53,58 @@ function sanitizeImage(url: string | undefined | null, address?: string, chain?:
 export async function resolveTokenAddress(token: string, chain: string = "base"): Promise<string> {
   const t = token.toUpperCase();
   if (t === "ETH") return "ETH";
-  if (t === "BTC") return "WBTC"; // Wrapped BTC on Base
+  if (t === "BTC") return "WBTC";
   if (t.startsWith("0x") && t.length === 42) return t;
   
-  // Common Base Tokens Hardcoded for Speed/Reliability
   const COMMON_BASE: Record<string, string> = {
-    "WETH": "0x4200000000000000000000000000000000000006",
-    "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    "USDT": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
-    "DAI": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
-    "BRETT": "0x532f27101965dd16442e59d40670faf5ebb142e4",
-    "DEGEN": "0x4ed4e862860bed51a9570b96d89af5e1b0efefed",
-    "TOSHI": "0xAC1AdC472F8d280CA7370486DbD584d4b8F270f7",
-    "MOG": "0x2Da56AcB9Ea78330f947bD57C54119Debda18528",
-    "KEYCAT": "0x9a26F5433671751C328c4896f46046439141Aad5",
-    "AERO": "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
-    "BSX": "0x1337000000000000000000000000000000000000" // Example, check real address if needed
-  };
+        "WETH": "0x4200000000000000000000000000000000000006",
+        "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "USDT": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
+        "DAI": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+        "BRETT": "0x532f27101965dd16442e59d40670faf5ebb142e4",
+        "DEGEN": "0x4ed4e862860bed51a9570b96d89af5e1b0efefed",
+        "TOSHI": "0xAC1AdC472F8d280CA7370486DbD584d4b8F270f7",
+        "MOG": "0x2Da56AcB9Ea78330f947bD57C54119Debda18528",
+        "KEYCAT": "0x9a26F5433671751C328c4896f46046439141Aad5",
+        "AERO": "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+        "BSX": "0x1337000000000000000000000000000000000000"
+      };
+
+      // Hardcoded Decimals for Stability
+      const TOKEN_DECIMALS: Record<string, number> = {
+          "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": 6, // USDC
+          "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2": 6, // USDT
+          "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb": 18, // DAI
+          "0x4200000000000000000000000000000000000006": 18, // WETH
+      };
 
   if (chain.toLowerCase() === "base" && COMMON_BASE[t]) return COMMON_BASE[t];
 
-  // Fallback to CoinGecko Search
+  // 1. Try DexScreener Search (Faster & More tokens)
+  try {
+      console.log(`Searching DexScreener for ${token} on ${chain}...`);
+      const searchRes = await axios.get(`https://api.dexscreener.com/latest/dex/search?q=${token}`);
+      const pairs = searchRes.data.pairs;
+      
+      if (pairs && pairs.length > 0) {
+          // Filter by chain and sort by liquidity
+          const chainPairs = pairs.filter((p: any) => p.chainId === chain.toLowerCase()).sort((a: any, b: any) => b.liquidity.usd - a.liquidity.usd);
+          
+          if (chainPairs.length > 0) {
+              const bestPair = chainPairs[0];
+              // Check if baseToken matches query
+              if (bestPair.baseToken.symbol.toUpperCase() === t) return bestPair.baseToken.address;
+              if (bestPair.quoteToken.symbol.toUpperCase() === t) return bestPair.quoteToken.address;
+              
+              // If not exact match, check symbol includes
+              if (bestPair.baseToken.symbol.toUpperCase().includes(t)) return bestPair.baseToken.address;
+          }
+      }
+  } catch (e) {
+      console.error("DexScreener resolution error:", e);
+  }
+
+  // 2. Fallback to CoinGecko Search
   try {
       console.log(`Searching CoinGecko for ${token} on ${chain}...`);
       const searchRes = await axios.get(`https://api.coingecko.com/api/v3/search?query=${token}`);
@@ -632,7 +663,11 @@ export const terminal_swap = tool(
 
       // 2. Fetch Decimals
       let decimals = 18;
-      if (tokenInAddr !== NATIVE_ETH) {
+      
+      // Check hardcoded decimals first
+      if (TOKEN_DECIMALS[tokenInAddr]) {
+          decimals = TOKEN_DECIMALS[tokenInAddr];
+      } else if (tokenInAddr !== NATIVE_ETH) {
           try {
              decimals = await publicClient.readContract({
                  address: tokenInAddr as `0x${string}`,
@@ -653,15 +688,7 @@ export const terminal_swap = tool(
           return `No swap route found: ${routeRes.data?.message || "Liquidity insufficient or pair not supported."}`;
       }
 
-      return `<SWAP_TX 
-        tokenIn="${tokenIn.toUpperCase()}" 
-        tokenOut="${tokenOut.toUpperCase()}" 
-        amount="${amount}" 
-        tokenInAddr="${tokenInAddr}" 
-        tokenOutAddr="${tokenOutAddr}" 
-        amountAtomic="${amountAtomic}" 
-        chain="base"
-      />`;
+      return `<SWAP_TX tokenIn="${tokenIn.toUpperCase()}" tokenOut="${tokenOut.toUpperCase()}" amount="${amount}" tokenInAddr="${tokenInAddr}" tokenOutAddr="${tokenOutAddr}" amountAtomic="${amountAtomic}" chain="base" />`;
 
     } catch (error: any) {
       console.error("Swap tool error:", error);
@@ -669,9 +696,9 @@ export const terminal_swap = tool(
     }
   },
   {
-    name: "terminal_swap",
-    description: "Generate a transaction widget for the user to buy/sell tokens on Base chain. Use this when the user explicitly wants to buy/sell/swap tokens.",
-    schema: z.object({
+            name: "terminal_swap",
+            description: "Generate a transaction widget for the user to buy/sell ANY token on Base chain. Supports all tokens (verified via DexScreener/CoinGecko) and any amount. Use this when the user explicitly wants to buy/sell/swap tokens.",
+            schema: z.object({
       tokenIn: z.string().describe("The token symbol to sell (e.g. ETH, USDC)"),
       tokenOut: z.string().describe("The token symbol to buy (e.g. BRETT, DEGEN)"),
       amount: z.string().describe("The amount to swap (e.g. 0.1, 100)"),

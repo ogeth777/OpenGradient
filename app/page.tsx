@@ -128,7 +128,8 @@ export default function Home() {
     }
 
     // Check for <SWAP_TX> tag (New Native Swap)
-    const swapTxMatch = cleanContent.match(/<SWAP_TX\s+tokenIn="([^"]+)"\s+tokenOut="([^"]+)"\s+amount="([^"]+)"\s+tokenInAddr="([^"]+)"\s+tokenOutAddr="([^"]+)"\s+amountAtomic="([^"]+)"\s+chain="([^"]+)"\s*\/>/);
+    const swapTxMatch = cleanContent.match(/<SWAP_TX\s+tokenIn="([^"]+)"\s+tokenOut="([^"]+)"\s+amount="([^"]+)"\s+tokenInAddr="([^"]+)"\s+tokenOutAddr="([^"]+)"\s+amountAtomic="([^"]+)"\s+chain="([^"]+)"\s*\/?>/i) ||
+                        cleanContent.match(/<SWAP_TX\s+[\s\S]*?tokenIn="([^"]+)"[\s\S]*?tokenOut="([^"]+)"[\s\S]*?amount="([^"]+)"[\s\S]*?tokenInAddr="([^"]+)"[\s\S]*?tokenOutAddr="([^"]+)"[\s\S]*?amountAtomic="([^"]+)"[\s\S]*?chain="([^"]+)"[\s\S]*?\/?>/i);
     let swapTxData = null;
     if (swapTxMatch) {
         swapTxData = {
