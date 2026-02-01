@@ -34,7 +34,7 @@ const nextConfig: NextConfig = {
         ]
       },
       {
-        // matching all routes for CORS (including /runs/wait)
+        // matching all routes for CORS
         source: "/:path*",
         headers: [
           { key: "Access-Control-Allow-Origin", value: "*" },
@@ -44,6 +44,39 @@ const nextConfig: NextConfig = {
       }
     ]
   },
+  async rewrites() {
+    return [
+      // Map root LangGraph paths to /api/terminal
+      {
+        source: '/assistants',
+        destination: '/api/terminal/assistants',
+      },
+      {
+        source: '/assistants/:path*',
+        destination: '/api/terminal/assistants/:path*',
+      },
+      {
+        source: '/threads',
+        destination: '/api/terminal/threads',
+      },
+      {
+        source: '/threads/:path*',
+        destination: '/api/terminal/threads/:path*',
+      },
+      {
+        source: '/runs',
+        destination: '/api/terminal/runs',
+      },
+      {
+        source: '/runs/:path*',
+        destination: '/api/terminal/runs/:path*',
+      },
+      {
+        source: '/stream',
+        destination: '/api/terminal/stream',
+      }
+    ];
+  }
 };
 
 export default nextConfig;
