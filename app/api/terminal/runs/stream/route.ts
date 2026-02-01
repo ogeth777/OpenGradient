@@ -19,15 +19,6 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("Received /api/terminal/runs/stream request:", JSON.stringify(body, null, 2));
 
-    // SECURITY CHECK (SOFT)
-    const envKey = process.env.WARDEN_API_KEY;
-    if (envKey) {
-        const headerKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
-        if (headerKey !== envKey) {
-             console.log("Warning: Unauthorized request to /api/terminal/runs/stream (allowed for compatibility)");
-        }
-    }
-
     // Extract input
     const messages = body.input?.messages || [];
     const lastMessage = messages.length > 0 ? messages[messages.length - 1] : null;
@@ -38,28 +29,24 @@ export async function POST(req: Request) {
             : JSON.stringify(lastMessage.content);
     }
 
-    // Since we don't support true streaming from the agent yet, we simulate it
-    // by getting the full response and sending it as a single event or chunk.
     let agentResponse;
     try {
         agentResponse = await processAgentRequest(userPrompt);
     } catch (agentError: any) {
-        console.error("Agent Error in stream:", agentError);
         agentResponse = `**SYSTEM ERROR**\n\n${agentError.message || "Unknown error occurred."}`;
     }
 
-    // Create a stream
+    // Create a stream using standard SSE format
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
-        // Event: metadata
-        const metadataEvent = {
-            run_id: crypto.randomUUID()
-        };
-        controller.enqueue(encoder.encode(`event: metadata\ndata: ${JSON.stringify(metadataEvent)}\n\n`));
+        
+        // 1. Send 'metadata' event
+        const metadata = { run_id: crypto.randomUUID() };
+        controller.enqueue(encoder.encode(`event: metadata\ndata: ${JSON.stringify(metadata)}\n\n`));
 
-        // Event: values
-        const valuesEvent = {
+        // 2. Send 'values' event (This is what LangGraph UI renders)
+        const values = {
             messages: [
                 ...messages,
                 {
@@ -70,9 +57,10 @@ export async function POST(req: Request) {
                 }
             ]
         };
-        controller.enqueue(encoder.encode(`event: values\ndata: ${JSON.stringify(valuesEvent)}\n\n`));
+        // CRITICAL: Double newline \n\n is required for SSE
+        controller.enqueue(encoder.encode(`event: values\ndata: ${JSON.stringify(values)}\n\n`));
 
-        // End
+        // 3. Send 'end' event to close the connection properly
         controller.enqueue(encoder.encode(`event: end\ndata: {}\n\n`));
         controller.close();
       }
@@ -84,8 +72,6 @@ export async function POST(req: Request) {
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-api-key',
       },
     });
 
