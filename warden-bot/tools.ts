@@ -565,6 +565,50 @@ export const evaluateTokenRiskTool = tool(
   }
 );
 
+export const getTradeQuoteTool = tool(
+    async ({ tokenIn, tokenOut, amount, chain }) => {
+        // Resolve Symbols to Addresses if possible (using common Base tokens for demo)
+        const COMMON_BASE: Record<string, string> = {
+            "ETH": "ETH",
+            "WETH": "0x4200000000000000000000000000000000000006",
+            "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "DAI": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
+            "BRETT": "0x532f27101965dd16442E59d40670FaF5eBB142E4",
+            "DEGEN": "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed",
+            "AERO": "0x940181a94A35A4569E4529A3CDfB74e38FD98631",
+            "USDT": "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2",
+            "AIXBT": "0x4DCDCf6452ef4cd1b4748B89a43e4eb291410c85",
+            "VIRTUAL": "0x0b3e328455c4059eeb9e37430e58a8458b9ec976",
+            "CBETH": "0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22",
+            "SEAM": "0x1C7a460413dD4e964f96D8dFC56E7223cE88CD85"
+        };
+
+        const inSymbol = tokenIn.toUpperCase();
+        const outSymbol = tokenOut.toUpperCase();
+        
+        const inAddr = COMMON_BASE[inSymbol] || "ETH";
+        const outAddr = COMMON_BASE[outSymbol] || (outSymbol === "ETH" ? "ETH" : "0x...");
+
+        // Generate Uniswap Link
+        const uniLink = `https://app.uniswap.org/swap?chain=${chain || 'base'}&inputCurrency=${inAddr === 'ETH' ? 'ETH' : inAddr}&outputCurrency=${outAddr === 'ETH' ? 'ETH' : outAddr}&exactAmount=${amount}`;
+
+        // Return XML tag for Frontend Widget
+        // NOTE: We return a string that the frontend will parse
+        return `<SWAP_WIDGET tokenIn="${inSymbol}" tokenOut="${outSymbol}" amount="${amount}" chain="${chain || 'base'}" link="${uniLink}" />`;
+    },
+    {
+        name: "get_trade_quote",
+        description: "Get a trade quote and generate a swap widget for the user to buy/sell tokens.",
+        schema: z.object({
+            tokenIn: z.string().describe("The token symbol to sell (e.g. 'ETH', 'USDC')"),
+            tokenOut: z.string().describe("The token symbol to buy (e.g. 'DAI', 'BRETT')"),
+            amount: z.string().describe("The amount to swap"),
+            chain: z.string().optional().describe("The blockchain network (default: base)")
+        })
+    }
+);
+
+
 export async function fetchMultiChainPortfolio(address: string) {
     // Extended Chain List (User requested "all networks")
     const chains = [

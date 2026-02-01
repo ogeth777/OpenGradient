@@ -118,6 +118,21 @@ export default function Home() {
       }
     }
 
+    // Check for <SWAP_WIDGET> tag
+    const swapWidgetMatch = cleanContent.match(/<SWAP_WIDGET\s+tokenIn="([^"]+)"\s+tokenOut="([^"]+)"\s+amount="([^"]+)"\s+chain="([^"]+)"\s+link="([^"]+)"\s*\/>/);
+    let swapData = null;
+
+    if (swapWidgetMatch) {
+        swapData = {
+            tokenIn: swapWidgetMatch[1],
+            tokenOut: swapWidgetMatch[2],
+            amount: swapWidgetMatch[3],
+            chain: swapWidgetMatch[4],
+            link: swapWidgetMatch[5]
+        };
+        cleanContent = cleanContent.replace(swapWidgetMatch[0], "").trim();
+    }
+
     return (
       <div className="leading-relaxed text-sm md:text-base">
         <ReactMarkdown 
@@ -295,26 +310,20 @@ export default function Home() {
         <section className="flex-1 flex flex-col relative">
           <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scrollbar-thin scrollbar-thumb-green-900 scrollbar-track-transparent">
             {messages.length <= 1 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto my-12">
+                <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto my-12 px-4">
                     {[
-                        { title: "INITIALIZE SCAN: TRENDING", prompt: "What are the trending tokens on Base?", icon: TrendingUp },
-                        { title: "RUN PROTOCOL: YIELD FARMING", prompt: "Find best yield opportunities on Base", icon: Zap },
-                        { title: "EXECUTE: RISK ANALYSIS", prompt: "START_RISK_ANALYSIS", icon: ShieldCheck },
-                        { title: "ACCESS: PORTFOLIO DATA", prompt: "Analyze my portfolio with DeBank", icon: Activity }
-                    ].map((item, i) => (
+                        "What can the Terminal AI Agent do?",
+                        "Swap 10 USDC for DAI on Base",
+                        "Swap ETH for USDC",
+                        "Trending tokens on Base",
+                        "Analyze risk of a token"
+                    ].map((prompt, i) => (
                         <button 
                             key={i}
-                            onClick={() => handleSuggestionClick(item.prompt)}
-                            className="group relative border border-green-900/50 bg-black/40 p-6 text-left hover:bg-green-900/10 hover:border-green-500/50 transition-all overflow-hidden"
+                            onClick={() => handleSuggestionClick(prompt)}
+                            className="px-6 py-3 rounded-full border border-green-500/30 bg-green-900/10 hover:bg-green-500/20 hover:border-green-400 text-green-400 text-sm font-medium transition-all hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] backdrop-blur-sm"
                         >
-                            <div className="absolute inset-0 bg-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                            <div className="flex items-center gap-3 mb-2 text-green-400 group-hover:text-green-300">
-                                <item.icon className="w-5 h-5" />
-                                <span className="text-xs font-bold tracking-widest">{item.title}</span>
-                            </div>
-                            <p className="text-xs text-green-700 group-hover:text-green-600 font-mono">
-                                {">"} {item.prompt}
-                            </p>
+                            {prompt}
                         </button>
                     ))}
                 </div>

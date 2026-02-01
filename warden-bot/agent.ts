@@ -29,6 +29,9 @@ AVAILABLE PROTOCOLS:
 > **Analyze Portfolio**
   *Check your wallet balance*
 
+> **Swap Tokens**
+  *e.g. "Swap 10 USDC for BRETT"*
+
 _System ready. Awaiting input..._`;
   }
 
@@ -53,7 +56,8 @@ _System ready. Awaiting input..._`;
       getYieldOpportunitiesTool,
       evaluateTokenRiskTool,
       analyzePortfolioTool,
-      getTopGainersTool
+      getTopGainersTool,
+      getTradeQuoteTool
     ];
 
     const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
