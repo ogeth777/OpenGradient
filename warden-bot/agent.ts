@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { getTrendingTokensTool, getYieldOpportunitiesTool, evaluateTokenRiskTool, analyzePortfolioTool, getTopGainersTool, getTradeQuoteTool, executeSwapTool, fetchTopGainers, fetchTrendingTokens } from "./tools";
+import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, fetchTopGainers, fetchTrendingTokens } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string) {
@@ -10,9 +10,25 @@ export async function processAgentRequest(userPrompt: string) {
 
   const lowerPrompt = userPrompt.toLowerCase().trim();
 
-  // 0.0.1 Interactive Swap/Buy Flow
-  if (lowerPrompt === "swap" || lowerPrompt === "buy" || lowerPrompt === "trade") {
-      return "To perform a swap, please specify what you want to trade.\n\n**Examples:**\n- \"Swap 10 USDC for ETH\"\n- \"Buy BRETT with 0.01 ETH\"\n- \"Swap 50 AERO for USDC\"\n\n_Tell me the amount and the tokens you want to swap._";
+  // 0.0.1 Interactive Swap/Buy Flow - Direct Bypass
+  // Check if it's a swap command to avoid LLM overhead/failure
+  if (lowerPrompt.includes("swap") || lowerPrompt.includes("buy")) {
+      const swapMatch = userPrompt.match(/swap\s+(\d+(?:\.\d+)?)\s+([a-z0-9]+)\s+(?:for|to)\s+([a-z0-9]+)/i);
+      const buyMatch = userPrompt.match(/buy\s+([a-z0-9]+)\s+with\s+(\d+(?:\.\d+)?)\s+([a-z0-9]+)/i);
+
+      if (swapMatch) {
+          const [_, amount, tokenIn, tokenOut] = swapMatch;
+          return await terminal_swap.invoke({ tokenIn, tokenOut, amount, chain: "base" }) as string;
+      }
+      if (buyMatch) {
+          const [_, tokenOut, amount, tokenIn] = buyMatch;
+          return await terminal_swap.invoke({ tokenIn, tokenOut, amount, chain: "base" }) as string;
+      }
+      
+      // If no regex match but contains swap/buy, fall through to LLM or return help
+      if (lowerPrompt === "swap" || lowerPrompt === "buy" || lowerPrompt === "trade") {
+          return "To perform a swap, please specify what you want to trade.\n\n**Examples:**\n- \"Swap 10 USDC for ETH\"\n- \"Buy BRETT with 0.01 ETH\"\n- \"Swap 50 AERO for USDC\"\n\n_Tell me the amount and the tokens you want to swap._";
+      }
   }
 
   // 0.1 Greeting / Menu Interception
@@ -59,13 +75,13 @@ _System ready. Awaiting input..._`;
     const wardenToolkit = new WardenToolkit(agentKit);
     const tools = [
       ...wardenToolkit.getTools(),
-      getTrendingTokensTool,
-      getYieldOpportunitiesTool,
-      evaluateTokenRiskTool,
-      analyzePortfolioTool,
-      getTopGainersTool,
-      getTradeQuoteTool,
-      executeSwapTool
+      terminal_trending,
+      terminal_yield,
+      terminal_risk,
+      terminal_portfolio,
+      terminal_top_gainers,
+      terminal_quote,
+      terminal_swap
     ];
 
     const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
@@ -73,7 +89,7 @@ _System ready. Awaiting input..._`;
 
     const systemMessage = {
       role: "system",
-      content: "You are TERMINAL AI, an advanced crypto AI agent. You can execute REAL token swaps on Base using the 'execute_swap' tool - use this when the user explicitly asks to 'buy' or 'swap' tokens and provides an amount. For general pricing or 'how to buy', use 'get_trade_quote'. When providing data about tokens, pools, or opportunities, YOU MUST ALWAYS include the direct links (CoinGecko, DefiLlama, etc.) provided in the tool output. If the user asks for 'top gainers' or 'tokens that grew', use the get_top_gainers tool and format the output as a clean list or grid data. ALWAYS Answer in ENGLISH, regardless of the user's input language."
+      content: "You are TERMINAL AI, an advanced crypto AI agent. You can execute REAL token swaps on Base using the 'terminal_swap' tool - use this when the user explicitly asks to 'buy' or 'swap' tokens and provides an amount. For general pricing or 'how to buy', use 'terminal_quote'. When providing data about tokens, pools, or opportunities, YOU MUST ALWAYS include the direct links (CoinGecko, DefiLlama, etc.) provided in the tool output. If the user asks for 'top gainers' or 'tokens that grew', use the 'terminal_top_gainers' tool and format the output as a clean list or grid data. ALWAYS Answer in ENGLISH, regardless of the user's input language."
     };
 
     try {
@@ -101,7 +117,7 @@ _System ready. Awaiting input..._`;
         }
         else if (lowerPrompt.includes("yield") || lowerPrompt.includes("farming") || lowerPrompt.includes("apy")) {
            const chain = lowerPrompt.includes("solana") ? "solana" : "base";
-           const rawResult = await getYieldOpportunitiesTool.invoke({ chain }) as string;
+           const rawResult = await terminal_yield.invoke({ chain }) as string;
            try {
              const data = JSON.parse(rawResult);
              if (Array.isArray(data)) {
@@ -129,7 +145,7 @@ _System ready. Awaiting input..._`;
            const words = userPrompt.split(" ");
            const token = words.find(w => w === w.toUpperCase() && w.length > 2 && w !== "RISK") || "BRETT";
            const chain = lowerPrompt.includes("solana") ? "solana" : "base";
-           const rawResult = await evaluateTokenRiskTool.invoke({ token, chain }) as string;
+           const rawResult = await terminal_risk.invoke({ token, chain }) as string;
            try {
              const data = JSON.parse(rawResult);
              if (data.risk_analysis) {
@@ -155,7 +171,7 @@ _System ready. Awaiting input..._`;
                const input: any = { chain };
                if (address) input.address = address;
               
-               const rawResult = await analyzePortfolioTool.invoke(input) as string;
+               const rawResult = await terminal_portfolio.invoke(input) as string;
                try {
                    const data = JSON.parse(rawResult);
                    if (data.debank_link) {
@@ -171,7 +187,7 @@ _System ready. Awaiting input..._`;
 
                // 1. Try Token Risk Analysis
                try {
-                   const riskResult = await evaluateTokenRiskTool.invoke({ token: address, chain }) as string;
+                   const riskResult = await terminal_risk.invoke({ token: address, chain }) as string;
                    const riskData = JSON.parse(riskResult);
                    
                    if (!riskData.error && riskData.risk_analysis) {
