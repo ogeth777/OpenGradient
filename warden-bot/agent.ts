@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, fetchTopGainers, fetchTrendingTokens, checkEthBalance } from "./tools";
+import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, terminal_balance, fetchTopGainers, fetchTrendingTokens, checkEthBalance } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string, userAddress?: string) {
@@ -73,7 +73,8 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       terminal_portfolio,
       terminal_top_gainers,
       terminal_quote,
-      terminal_swap
+      terminal_swap,
+      terminal_balance
     ];
 
     const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
@@ -95,6 +96,11 @@ Key rules:
   - AERO: 0x940181a94A35A4569E4529A3CDfB74e38FD98631
   - If token unknown — ask user for contract address.
 - CRITICAL: BEFORE any swap — ALWAYS check user's ETH balance (Base native). If ETH < 0.0005 (gas buffer) → refuse and say: "Недостаточно ETH для газа! Пополни баланс хотя бы 0.001 ETH и попробуй снова."
+- "SWAP ALL" Logic: If user says "Swap all" or "max":
+  1. Call terminal_balance(tokenIn, userAddress) to get the exact balance.
+  2. If tokenIn is ETH: use 99% of balance (leave ~0.001 ETH for gas).
+  3. If tokenIn is ERC20: use 100% of balance (gas is paid in ETH).
+  4. Pass the calculated amount to terminal_swap.
 - Routing preference: Prefer routes through WETH/ETH.
 - Slippage: 1% default, up to 3% for memes.
 - Safety:
@@ -103,7 +109,7 @@ Key rules:
   - Show preview ALWAYS: "Свапаем X INPUT → ~Y OUTPUT через [маршрут если известен]. Slippage 1%, gas ~0.0004 ETH. Подтверди?"
 - Execution flow:
   1. Parse command.
-  2. Get balances (ETH + input token).
+  2. Get balances (ETH + input token) using terminal_balance.
   3. Call terminal_swap tool (which handles quoting and transaction generation).
   4. Show preview with estimated output.
   5. On confirmation (YES) → execute tx via Warden Keychain / internal wallet.

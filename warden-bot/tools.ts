@@ -746,6 +746,72 @@ export const terminal_swap = tool(
   }
 );
 
+export const terminal_balance = tool(
+  async ({ token, address }) => {
+    try {
+        const publicClient = createPublicClient({
+            chain: base,
+            transport: http("https://mainnet.base.org")
+        });
+
+        const NATIVE_ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        
+        // Resolve token
+        let tokenAddr = token.toUpperCase() === "ETH" ? NATIVE_ETH : await resolveTokenAddress(token, "base");
+        
+        // If resolveTokenAddress returns N/A, try to see if it's a valid address
+        if (tokenAddr === "N/A" && token.startsWith("0x") && token.length === 42) {
+            tokenAddr = token;
+        }
+        
+        if (tokenAddr === "N/A") return `Error: Could not find address for token '${token}'`;
+
+        const isNative = tokenAddr === NATIVE_ETH || tokenAddr === "0x4200000000000000000000000000000000000006" && token.toUpperCase() === "ETH"; // Handle WETH/ETH ambiguity if needed, but usually ETH is native
+        
+        let balance = 0n;
+        let decimals = 18;
+
+        if (token.toUpperCase() === "ETH") { // Explicitly handle ETH as native
+             balance = await publicClient.getBalance({ address: address as `0x${string}` });
+        } else {
+            // Get decimals
+             try {
+                 if (TOKEN_DECIMALS[tokenAddr]) {
+                     decimals = TOKEN_DECIMALS[tokenAddr];
+                 } else {
+                     decimals = await publicClient.readContract({
+                         address: tokenAddr as `0x${string}`,
+                         abi: erc20Abi,
+                         functionName: 'decimals'
+                     });
+                 }
+                 balance = await publicClient.readContract({
+                     address: tokenAddr as `0x${string}`,
+                     abi: erc20Abi,
+                     functionName: 'balanceOf',
+                     args: [address as `0x${string}`]
+                 });
+             } catch (e: any) {
+                 return `Error fetching ERC20 balance: ${e.message}`;
+             }
+        }
+
+        const formatted = formatUnits(balance, decimals);
+        return formatted;
+    } catch (error: any) {
+      return `Error: ${error.message}`;
+    }
+  },
+  {
+    name: "terminal_balance",
+    description: "Get the balance of a specific token for a wallet address on Base chain. Use this to check user funds before swapping.",
+    schema: z.object({
+      token: z.string().describe("Token symbol or address (e.g. ETH, USDC, 0x...)"),
+      address: z.string().describe("Wallet address to check")
+    })
+  }
+);
+
 export const terminal_yield = tool(
   async ({ chain }) => {
     try {
