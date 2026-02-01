@@ -1,8 +1,7 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import axios from "axios";
-import { createWalletClient, createPublicClient, http, parseUnits, encodeFunctionData, erc20Abi, parseEther, hexToBigInt, formatEther, formatUnits } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
+import { createPublicClient, http, parseUnits, erc20Abi, formatEther, formatUnits } from "viem";
 import { base } from "viem/chains";
 
 // --- Standalone Data Fetching Functions ---
@@ -647,7 +646,7 @@ export const terminal_top_gainers = tool(
 
 export const terminal_quote = tool(
   async ({ tokenIn, tokenOut, amount, chain }) => {
-     return `Use terminal_swap to generate a swap transaction. Quote: 1 ${tokenIn} = ... ${tokenOut} (Price data fetched dynamically)`;
+     return `Use uniswap_quote to generate a swap transaction. Quote: 1 ${tokenIn} = ... ${tokenOut} (Price data fetched dynamically)`;
   },
   {
     name: "terminal_quote",
