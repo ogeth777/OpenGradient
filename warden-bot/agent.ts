@@ -64,7 +64,8 @@ _System ready. Awaiting input..._`;
       evaluateTokenRiskTool,
       analyzePortfolioTool,
       getTopGainersTool,
-      getTradeQuoteTool
+      getTradeQuoteTool,
+      executeSwapTool
     ];
 
     const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
@@ -72,7 +73,7 @@ _System ready. Awaiting input..._`;
 
     const systemMessage = {
       role: "system",
-      content: "You are TERMINAL AI, an advanced crypto AI agent. When providing data about tokens, pools, or opportunities, YOU MUST ALWAYS include the direct links (CoinGecko, DefiLlama, etc.) provided in the tool output. If the user asks for 'top gainers' or 'tokens that grew', use the get_top_gainers tool and format the output as a clean list or grid data. ALWAYS Answer in ENGLISH, regardless of the user's input language."
+      content: "You are TERMINAL AI, an advanced crypto AI agent. You can execute REAL token swaps on Base using the 'execute_swap' tool - use this when the user explicitly asks to 'buy' or 'swap' tokens and provides an amount. For general pricing or 'how to buy', use 'get_trade_quote'. When providing data about tokens, pools, or opportunities, YOU MUST ALWAYS include the direct links (CoinGecko, DefiLlama, etc.) provided in the tool output. If the user asks for 'top gainers' or 'tokens that grew', use the get_top_gainers tool and format the output as a clean list or grid data. ALWAYS Answer in ENGLISH, regardless of the user's input language."
     };
 
     try {
