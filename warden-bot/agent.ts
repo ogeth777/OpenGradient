@@ -39,7 +39,10 @@ _System ready. Awaiting input..._`;
     const { ChatOpenAI } = await import("@langchain/openai");
 
     const privateKey = process.env.PRIVATE_KEY;
-    if (!privateKey) throw new Error("PRIVATE_KEY not found");
+    if (!privateKey) {
+        console.error("PRIVATE_KEY not found in environment variables");
+        return "**SYSTEM ERROR: WALLET NOT CONFIGURED.**\n\nAccess denied. Please contact administrator to configure the Agent Wallet (PRIVATE_KEY).";
+    }
 
     const config = { privateKeyOrAccount: privateKey as `0x${string}` };
     const agentKit = new WardenAgentKit(config);
@@ -67,6 +70,7 @@ _System ready. Awaiting input..._`;
       });
       return result.messages[result.messages.length - 1].content;
     } catch (invokeError: any) {
+      console.error("Agent invocation failed:", invokeError);
       // Fallback Logic
       if (invokeError.message.includes("429") || invokeError.message.includes("Quota")) {
         const lowerPrompt = userPrompt.toLowerCase();
@@ -177,9 +181,16 @@ _System ready. Awaiting input..._`;
       }
       throw invokeError;
     }
-  } catch (error) {
-    console.error("Agent Error:", error);
-    return `Error: ${error instanceof Error ? error.message : String(error)}`;
+  } catch (error: any) {
+    console.error("Critical Agent Error:", error);
+    return `**CRITICAL SYSTEM FAILURE**
+    
+Error accessing neural core: ${error.message || "Unknown Error"}
+
+*Diagnostics:*
+- Check PRIVATE_KEY configuration
+- Check OpenAI API Quota
+- Check Network Connectivity`;
   }
 }
 

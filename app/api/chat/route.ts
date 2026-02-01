@@ -42,15 +42,22 @@ export async function POST(req: Request) {
       return setCorsHeaders(res);
     }
 
-    const response = await processAgentRequest(prompt);
+    let response;
+    try {
+        response = await processAgentRequest(prompt);
+    } catch (agentError: any) {
+        console.error("Uncaught Agent Error:", agentError);
+        response = `**FATAL ERROR**\n\n${agentError.message || "Unknown system failure."}`;
+    }
     
     const res = NextResponse.json({ response });
     return setCorsHeaders(res);
   } catch (error) {
     console.error('API Error:', error);
+    // Return 200 with error message to prevent "Remote agent configuration" error in frontend
     const res = NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
+      { response: "**API GATEWAY ERROR**\n\nRequest processing failed. Please check server logs." },
+      { status: 200 }
     );
     return setCorsHeaders(res);
   }
