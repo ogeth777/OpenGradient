@@ -20,7 +20,7 @@ import remarkGfm from 'remark-gfm';
 
 export default function Home() {
   const [messages, setMessages] = useState<{ role: 'user' | 'agent'; content: string }[]>([
-    { role: 'agent', content: "INITIALIZING NEXUS SYSTEM...\n> CONNECTED TO BASE NETWORK\n> CONNECTED TO SOLANA NETWORK\n> READY FOR INQUIRIES." }
+    { role: 'agent', content: "INITIALIZING TERMINAL AI...\n> CONNECTED TO BASE NETWORK\n> READY FOR INQUIRIES." }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
