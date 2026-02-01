@@ -102,7 +102,7 @@ export default function Home() {
 
   const renderMessageContent = (content: string) => {
     // Check for <TOKEN_CARDS> tag
-    const tokenCardsMatch = content.match(/<TOKEN_CARDS>(.*?)<\/TOKEN_CARDS>/s);
+    const tokenCardsMatch = content.match(/<TOKEN_CARDS>([\s\S]*?)<\/TOKEN_CARDS>/);
     let cardsData = null;
     let cleanContent = content;
 
