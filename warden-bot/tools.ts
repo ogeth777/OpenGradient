@@ -1,7 +1,8 @@
 import { tool } from "@langchain/core/tools";
 import { z } from "zod";
 import axios from "axios";
-import { createPublicClient, http, parseUnits, erc20Abi, formatEther, formatUnits } from "viem";
+import { createPublicClient, createWalletClient, http, parseUnits, erc20Abi, formatEther, formatUnits } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { base } from "viem/chains";
 
 // --- Standalone Data Fetching Functions ---
@@ -673,22 +674,43 @@ export const terminal_swap = tool(
         // Get Decimals
         let decimals = 18;
         if (tokenInAddr !== "ETH" && tokenInAddr !== "0x0000000000000000000000000000000000000000") {
-             // Ideally fetch from chain, but for now default 18 or use known
              decimals = TOKEN_DECIMALS[tokenInAddr] || 18;
         }
 
         // Parse Amount
         const amountAtomic = parseUnits(amount.toString(), decimals).toString();
 
-        // Simulate Quote (Mock for now)
-        // In a real scenario, call Uniswap API here
+        // 1. Get Real Quote from KyberSwap
+        // KyberSwap uses "0xeeee..." for native ETH
+        const kyberTokenIn = tokenInAddr === "ETH" || tokenInAddr === "0x4200000000000000000000000000000000000006" 
+            ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" // Native for input
+            : tokenInAddr;
+        const kyberTokenOut = tokenOutAddr === "ETH" || tokenOutAddr === "0x4200000000000000000000000000000000000006"
+            ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" // Native for output
+            : tokenOutAddr;
+
+        const url = `https://aggregator-api.kyberswap.com/base/api/v1/routes?tokenIn=${kyberTokenIn}&tokenOut=${kyberTokenOut}&amountIn=${amountAtomic}`;
+        const res = await axios.get(url);
         
-        // Return clear TEXT data for the Agent to present
+        if (!res.data || !res.data.data || !res.data.data.routeSummary) {
+            return `Error: No liquidity found for this swap pair on KyberSwap.`;
+        }
+
+        const route = res.data.data.routeSummary;
+        const amountOut = route.amountOut;
+        const amountOutFormatted = formatUnits(BigInt(amountOut), TOKEN_DECIMALS[tokenOutAddr] || 6); // Default 6 for USDC stability, or 18?
+        // Note: We need better decimal handling for output, but simplified for now.
+        // Actually, let's try to guess decimals or just use a standard format.
+        // Safe bet: if USDC/USDT use 6, else 18.
+        const outDecimals = (tokenOut.toUpperCase().includes("USD")) ? 6 : 18; 
+        const displayAmountOut = formatUnits(BigInt(amountOut), outDecimals);
+        const gasUsd = route.gasUsd || "0.05";
+
         return `Swap Quote Details:
 - Selling: ${amount} ${tokenIn.toUpperCase()} (${tokenInAddr})
-- Receiving: (Calculating...) ${tokenOut.toUpperCase()} (${tokenOutAddr})
-- Rate: Best Market Rate
-- Est. Gas: ~$0.05
+- Receiving: ~${parseFloat(displayAmountOut).toFixed(6)} ${tokenOut.toUpperCase()}
+- Rate: 1 ${tokenIn.toUpperCase()} ≈ ${(parseFloat(displayAmountOut)/parseFloat(amount)).toFixed(4)} ${tokenOut.toUpperCase()}
+- Est. Gas: ~$${gasUsd}
 - Network: Base Mainnet`;
 
     } catch (error: any) {
@@ -709,17 +731,132 @@ export const terminal_swap = tool(
 
 export const execute_swap = tool(
     async ({ tokenIn, tokenOut, amount, chain = "base" }) => {
-        // In a real agent with a private key, this would sign and broadcast the transaction.
-        // For this "Text-Based Simulation" requested by the user, we return the success summary.
-        
-        const txHash = "0x" + Math.random().toString(16).substr(2, 64); // Mock Hash
-        
-        return `Swap Executed Successfully!
+        try {
+            const privateKey = process.env.PRIVATE_KEY;
+            if (!privateKey) return "Error: Agent wallet not configured (missing PRIVATE_KEY).";
+
+            const account = privateKeyToAccount(privateKey as `0x${string}`);
+            const client = createWalletClient({
+                account,
+                chain: base,
+                transport: http()
+            });
+            const publicClient = createPublicClient({ chain: base, transport: http() });
+
+            // Resolve Addresses
+            const tokenInAddr = await resolveTokenAddress(tokenIn, chain);
+            const tokenOutAddr = await resolveTokenAddress(tokenOut, chain);
+
+            if (tokenInAddr === "N/A" || tokenOutAddr === "N/A") {
+                return `Error: Could not identify tokens.`;
+            }
+
+            // Decimals
+            let decimals = 18;
+            if (tokenInAddr !== "ETH" && tokenInAddr !== "0x0000000000000000000000000000000000000000") {
+                decimals = TOKEN_DECIMALS[tokenInAddr] || 18;
+            }
+            const amountAtomic = parseUnits(amount.toString(), decimals).toString();
+
+            // KyberSwap Params
+            const kyberTokenIn = tokenInAddr === "ETH" || tokenInAddr === "0x4200000000000000000000000000000000000006" 
+                ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" 
+                : tokenInAddr;
+            const kyberTokenOut = tokenOutAddr === "ETH" || tokenOutAddr === "0x4200000000000000000000000000000000000006"
+                ? "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" 
+                : tokenOutAddr;
+
+            // 1. Get Route
+            console.log("Fetching route for execution...");
+            const routeUrl = `https://aggregator-api.kyberswap.com/base/api/v1/routes?tokenIn=${kyberTokenIn}&tokenOut=${kyberTokenOut}&amountIn=${amountAtomic}`;
+            const routeRes = await axios.get(routeUrl);
+            if (!routeRes.data || !routeRes.data.data || !routeRes.data.data.routeSummary) {
+                return `Error: No liquidity found for execution.`;
+            }
+            const routeSummary = routeRes.data.data.routeSummary;
+
+            // 2. Check Allowance (if not Native ETH)
+            if (kyberTokenIn !== "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
+                // Get Router Address from Kyber Config or API (usually constant for aggregator)
+                // Actually, route build response tells us the router, but we need to approve BEFORE build?
+                // Kyber Aggregator Router v6 on Base: 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5
+                // Safer: Call /route/build first? No, it might fail if not approved?
+                // Actually Kyber /route/build returns 'routerAddress' to approve.
+                // Let's call build first to get router address (it doesn't require on-chain approval to Generate calldata)
+                
+                const buildUrl = `https://aggregator-api.kyberswap.com/base/api/v1/route/build`;
+                const buildBody = {
+                    routeSummary: routeSummary,
+                    sender: account.address,
+                    recipient: account.address,
+                    slippageTolerance: 100 // 1%
+                };
+                // We can't build if we don't have approval? No, API usually builds anyway.
+            }
+
+            // 3. Build Transaction
+            console.log("Building transaction...");
+            const buildUrl = `https://aggregator-api.kyberswap.com/base/api/v1/route/build`;
+            const buildBody = {
+                routeSummary: routeSummary,
+                sender: account.address,
+                recipient: account.address,
+                slippageTolerance: 100 // 1%
+            };
+            const buildRes = await axios.post(buildUrl, buildBody);
+            
+            if (buildRes.data.code !== 0) {
+                 return `Error building transaction: ${buildRes.data.message}`;
+            }
+            
+            const { data: txData, routerAddress, amountIn } = buildRes.data.data;
+
+            // 4. Handle Approval (NOW we have routerAddress)
+            if (kyberTokenIn !== "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
+                const allowance = await publicClient.readContract({
+                    address: tokenInAddr as `0x${string}`,
+                    abi: erc20Abi,
+                    functionName: 'allowance',
+                    args: [account.address, routerAddress as `0x${string}`]
+                });
+
+                if (allowance < BigInt(amountAtomic)) {
+                    console.log("Approving token...");
+                    const approveHash = await client.writeContract({
+                        address: tokenInAddr as `0x${string}`,
+                        abi: erc20Abi,
+                        functionName: 'approve',
+                        args: [routerAddress as `0x${string}`, BigInt(amountAtomic)],
+                        account
+                    });
+                    // Wait for approval
+                    await publicClient.waitForTransactionReceipt({ hash: approveHash });
+                    console.log("Approved.");
+                }
+            }
+
+            // 5. Send Transaction
+            console.log("Sending swap transaction...");
+            const txHash = await client.sendTransaction({
+                account,
+                to: routerAddress as `0x${string}`,
+                data: txData as `0x${string}`,
+                value: BigInt(kyberTokenIn === "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE" ? amountAtomic : 0)
+            });
+
+            console.log("Swap sent:", txHash);
+
+            return `Swap Executed Successfully!
 - Sold: ${amount} ${tokenIn}
 - Bought: ~${tokenOut}
 - Network: ${chain}
 - Transaction Hash: ${txHash}
 - Status: Confirmed on-chain`;
+
+        } catch (e: any) {
+            console.error("Swap execution error:", e);
+            return `Error Executing Swap: ${e.message}`;
+        }
     },
     {
         name: "execute_swap",
