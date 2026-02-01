@@ -30,7 +30,7 @@ export async function processAgentRequest(userPrompt: string) {
     ];
 
     const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
-    const agent = createReactAgent({ llm, tools });
+    const agent = createReactAgent({ llm, tools: tools as any });
 
     const systemMessage = {
       role: "system",
