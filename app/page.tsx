@@ -1,374 +1,366 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Brain, BarChart3, Users, ExternalLink, ChevronDown, MessageCircle } from "lucide-react";
-import MouseGlow from "./components/MouseGlow";
-import NetworkBackground from "./components/NetworkBackground";
-import VideoModal from "./components/VideoModal";
-import { useState } from "react";
+import Image from "next/image";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Terminal, 
+  Send, 
+  TrendingUp, 
+  ShieldCheck, 
+  Cpu, 
+  Activity,
+  Globe,
+  Zap,
+  RefreshCw,
+  ExternalLink
+} from "lucide-react";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 export default function Home() {
-  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
+  const [messages, setMessages] = useState<{ role: 'user' | 'agent'; content: string }[]>([
+    { role: 'agent', content: "INITIALIZING NEXUS SYSTEM...\n> CONNECTED TO BASE NETWORK\n> CONNECTED TO SOLANA NETWORK\n> READY FOR INQUIRIES." }
+  ]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState("");
+  const [marketData, setMarketData] = useState<{ trending: any[], yields: any[] }>({ trending: [], yields: [] });
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToProjects = () => {
-    const element = document.getElementById("projects");
-    element?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  return (
-    <main className="min-h-screen bg-[#0f0f1a] text-white overflow-x-hidden selection:bg-purple-500/30">
-      <NetworkBackground />
-      <MouseGlow />
+  useEffect(() => {
+    setSessionId(Math.random().toString(36).substring(7).toUpperCase());
+    
+    // Fetch Market Data
+    fetch('/api/market-data')
+      .then(res => res.json())
+      .then(data => {
+        if (data.trending && data.yields) {
+          setMarketData(data);
+        }
+      })
+      .catch(err => console.error("Failed to load market data", err));
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const handleSubmit = async (e: React.FormEvent, manualPrompt?: string) => {
+    e.preventDefault();
+    const promptToSend = manualPrompt || input;
+    if (!promptToSend.trim()) return;
+
+    setMessages(prev => [...prev, { role: 'user', content: promptToSend }]);
+    setInput("");
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: promptToSend }),
+      });
       
-      <VideoModal 
-        isOpen={!!selectedVideo} 
-        videoSrc={selectedVideo} 
-        onClose={() => setSelectedVideo(null)} 
-      />
+      const data = await response.json();
+      setMessages(prev => [...prev, { role: 'agent', content: data.response || "ERROR: CONNECTION LOST." }]);
+    } catch (error) {
+      setMessages(prev => [...prev, { role: 'agent', content: "CRITICAL ERROR: FAILED TO REACH CORE." }]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-4 overflow-hidden">
-        
-        {/* Floating Background Logos */}
-        <motion.div 
-          initial={{ opacity: 0, x: -100 }}
-          animate={{ opacity: 0.05, x: 0 }}
-          transition={{ duration: 1.5, delay: 0.5 }}
-          className="absolute left-[-10%] md:left-[5%] top-1/4 w-64 h-64 md:w-96 md:h-96 pointer-events-none"
-        >
-           <motion.img
-             src="/bg-logo.png"
-             alt="Background Logo Left"
-             className="w-full h-full object-contain opacity-30 drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]"
-             animate={{ 
-               y: [0, -20, 0],
-               rotate: [0, 5, 0]
-             }}
-             transition={{ 
-               duration: 6, 
-               repeat: Infinity, 
-               ease: "easeInOut" 
-             }}
-           />
-        </motion.div>
+  const handleSuggestionClick = (prompt: string) => {
+      handleSubmit({ preventDefault: () => {} } as React.FormEvent, prompt);
+  };
 
-        <motion.div 
-          initial={{ opacity: 0, x: 100 }}
-          animate={{ opacity: 0.05, x: 0 }}
-          transition={{ duration: 1.5, delay: 0.5 }}
-          className="absolute right-[-10%] md:right-[5%] bottom-1/4 w-64 h-64 md:w-96 md:h-96 pointer-events-none"
-        >
-           <motion.img
-             src="/bg-logo.png"
-             alt="Background Logo Right"
-             className="w-full h-full object-contain opacity-30 drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]"
-             animate={{ 
-               y: [0, 20, 0],
-               rotate: [0, -5, 0]
-             }}
-             transition={{ 
-               duration: 7, 
-               repeat: Infinity, 
-               ease: "easeInOut",
-               delay: 1
-             }}
-           />
-        </motion.div>
+  const handleReset = () => {
+    setMessages([
+      { role: 'agent', content: "SYSTEM REBOOTED...\n> CONNECTED TO BASE NETWORK\n> CONNECTED TO SOLANA NETWORK\n> READY FOR NEW INQUIRIES." }
+    ]);
+    setInput("");
+    setSessionId(Math.random().toString(36).substring(7).toUpperCase());
+  };
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="z-10 max-w-5xl mx-auto"
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    // Optional: could show a toast here, but for now just console log or rely on UI feedback
+  };
+
+  const formatPrice = (price: number) => {
+    if (!price) return "$0.00";
+    if (price < 0.000001) return `$${price.toExponential(4)}`;
+    if (price < 0.001) return `$${price.toFixed(8)}`;
+    if (price < 1) return `$${price.toFixed(4)}`;
+    return `$${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const renderMessageContent = (content: string) => {
+    // Check for <TOKEN_CARDS> tag
+    const tokenCardsMatch = content.match(/<TOKEN_CARDS>(.*?)<\/TOKEN_CARDS>/s);
+    let cardsData = null;
+    let cleanContent = content;
+
+    if (tokenCardsMatch) {
+      try {
+        cardsData = JSON.parse(tokenCardsMatch[1]);
+        cleanContent = content.replace(tokenCardsMatch[0], "").trim();
+      } catch (e) {
+        console.error("Failed to parse token cards", e);
+      }
+    }
+
+    return (
+      <div className="leading-relaxed text-sm md:text-base">
+        <ReactMarkdown 
+          remarkPlugins={[remarkGfm]}
+          components={{
+            a: ({node, ...props}) => (
+              <a {...props} target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline underline-offset-4 decoration-green-500/50 hover:decoration-green-400 transition-all cursor-pointer font-bold" />
+            ),
+            p: ({node, ...props}) => {
+                // Check if p contains a contract address pattern (0x...) or solana address
+                // We'll traverse children to find text nodes with addresses
+                return <p {...props} className="mb-2 last:mb-0 whitespace-pre-wrap" />
+            },
+            ul: ({node, ...props}) => <ul {...props} className="list-disc list-inside mb-2" />,
+            code: ({node, className, children, ...props}) => {
+                const text = String(children).replace(/\n$/, '');
+                const isAddress = /^(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$/.test(text);
+                
+                if (isAddress) {
+                    return (
+                        <code 
+                            {...props} 
+                            onClick={() => copyToClipboard(text)}
+                            className="bg-green-900/30 px-1 rounded text-green-300 font-mono text-sm cursor-pointer hover:bg-green-500/20 hover:text-green-200 transition-colors border-b border-dashed border-green-500/50"
+                            title="Click to Copy Address"
+                        >
+                            {children}
+                        </code>
+                    );
+                }
+                return <code {...props} className="bg-green-900/30 px-1 rounded text-green-300 font-mono text-sm">{children}</code>
+            },
+            // Use text renderer to intercept addresses? 
+            // Better: use regex replacement in the content string before passing to ReactMarkdown?
+            // No, that breaks other markdown.
+            // Let's use a custom component for text nodes? No, ReactMarkdown doesn't support that easily.
+            // Alternative: Pre-process the content to wrap addresses in backticks or a custom link?
+            // If we wrap in `code`, we can style it.
+            // Let's try to detect address in the text content prop of 'p' or 'li' is hard.
+          }}
         >
-          <div className="mb-10 flex justify-center">
-            <div className="relative group cursor-default">
-              {/* Outer Glow Effect */}
-              <div className="absolute -inset-4 bg-cyan-500/30 rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition duration-500 animate-pulse" />
-              
-              {/* Icon Container */}
-              <div className="relative w-32 h-32 bg-black rounded-[2rem] border border-white/10 shadow-2xl flex items-center justify-center overflow-hidden ring-1 ring-white/5">
-                 {/* Inner subtle gradient for depth */}
-                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-transparent z-10 pointer-events-none" />
-                 
-                 {/* Logo Image - fitting perfectly */}
-                 <img 
-                   src="/logo.png" 
-                   alt="OpenGradient Logo" 
-                   className="w-full h-full object-cover" 
-                 />
+          {cleanContent.replace(/(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})/g, '`$1`')}
+        </ReactMarkdown>
+
+
+        {cardsData && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            {cardsData.map((token: any, i: number) => (
+              <div key={i} className="bg-black/40 border border-green-900/50 p-4 rounded-sm hover:border-green-500/30 transition-all group">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    {token.image ? (
+                       <div className="relative w-8 h-8 rounded-full overflow-hidden bg-white/5">
+                         <Image 
+                           src={token.image} 
+                           alt={token.symbol} 
+                           fill
+                           sizes="32px"
+                           className="object-cover"
+                         />
+                       </div>
+                    ) : (
+                       <div className="w-8 h-8 rounded-full bg-green-900/20 flex items-center justify-center text-xs font-bold">{token.symbol[0]}</div>
+                    )}
+                    <div>
+                      <div className="font-bold text-green-100">{token.symbol}</div>
+                      <div className="text-xs text-green-600 truncate max-w-[100px]">{token.name}</div>
+                    </div>
+                  </div>
+                  <div className={`text-right ${token.price_change_percentage_24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                     <div className="font-mono font-bold">{formatPrice(token.current_price)}</div>
+                     <div className="text-xs flex items-center justify-end gap-1">
+                        {token.price_change_percentage_24h >= 0 ? '▲' : '▼'}
+                        {Math.abs(token.price_change_percentage_24h).toFixed(2)}%
+                     </div>
+                  </div>
+                </div>
+                
+                {/* <div className="flex items-center justify-between text-xs text-green-700 font-mono mt-2 pt-2 border-t border-green-900/30">
+                   <div>MCap: ${token.market_cap?.toLocaleString()}</div>
+                </div> */}
+
+                <div className="flex gap-2 mt-4">
+                    <a 
+                      href={token.trade_url || token.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-2 bg-green-500/10 hover:bg-green-500/20 border border-green-500/50 hover:border-green-400 py-2 rounded text-xs uppercase tracking-widest text-green-400 font-bold transition-all"
+                    >
+                      {token.trade_url ? "SWAP" : "VIEW"} <Zap className="w-3 h-3" />
+                    </a>
+                    {token.security_url && (
+                        <a 
+                          href={token.security_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 px-3 bg-red-900/10 hover:bg-red-500/20 border border-red-900/50 hover:border-red-400 py-2 rounded text-xs uppercase tracking-widest text-red-400 transition-all"
+                          title="Security Scan"
+                        >
+                          <ShieldCheck className="w-3 h-3" />
+                        </a>
+                    )}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
-          
-          <h1 className="text-4xl md:text-7xl font-bold mb-8 tracking-tight">
-            <span className="block bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 drop-shadow-[0_0_15px_rgba(45,212,191,0.3)]">
-              OpenGradient
-            </span>
-            <span className="block text-2xl md:text-4xl mt-6 text-gray-300 font-normal leading-relaxed">
-              The Future of AI on Blockchain, Simplified
-            </span>
-          </h1>
-          
-          <p className="text-xl md:text-2xl text-gray-300 mb-10 font-light">
-            Learn what MemSync, BitQuant, and Twin.fun are in 5 minutes
-          </p>
-          
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={scrollToProjects}
-            className="cursor-pointer group relative px-8 py-4 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full text-lg font-medium transition-all duration-300 shadow-[0_0_20px_rgba(34,211,238,0.3)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)]"
-          >
-            Get Started
-            <span className="ml-2 inline-block transition-transform group-hover:translate-x-1">→</span>
-          </motion.button>
-        </motion.div>
-        
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1, duration: 1 }}
-          className="absolute bottom-0 flex flex-col items-center pointer-events-none"
-        >
-          <div className="animate-bounce text-cyan-400/80 mb-4 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
-            <ChevronDown size={32} />
-          </div>
-          {/* Connecting Line with Gradient */}
-          <div className="w-[1px] h-24 bg-gradient-to-b from-cyan-400 to-transparent opacity-50 shadow-[0_0_15px_rgba(34,211,238,0.5)]"></div>
-        </motion.div>
-      </section>
-
-      {/* What is OpenGradient */}
-      <section className="py-20 px-4 relative z-10 bg-[#0f0f1a]/50 backdrop-blur-sm">
-        <div className="max-w-3xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-3xl font-bold mb-6 text-white">What is OpenGradient?</h2>
-            <p className="text-xl md:text-2xl text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
-              OpenGradient is the leading decentralized network for verifiable AI computing. It builds the infrastructure for &quot;User Owned AI&quot; secure, open, and auditable. Unlike traditional black box models, OpenGradient ensures every inference is proven on chain, making intelligence transparent, tamper proof, and truly yours.
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Projects Section */}
-      <section id="projects" className="py-20 px-4 relative z-10">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-          
-          {/* MemSync */}
-          <ProjectCard 
-            icon={<Brain className="w-12 h-12 text-purple-400" />}
-            title="MemSync"
-            subtitle="Your Eternal Memory for Any AI"
-            videoSrc="/MemSync.mp4"
-            description={
-              <>
-                Imagine if ChatGPT, Claude, or any other AI remembered EVERYTHING about you: what you like, past conversations. MemSync is like a memory cloud that travels with you across different AIs. Everything is encrypted and yours alone.{" "}
-                <a 
-                  href="https://x.com/0xDeltaHedged/status/1938239003565719668?s=20" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
-                >
-                  ...
-                </a>
-              </>
-            }
-            link="https://app.memsync.ai/"
-            gradient="from-purple-500/20 to-blue-500/5"
-            borderColor="border-purple-500/30"
-            onVideoClick={() => setSelectedVideo("/MemSync.mp4")}
-          />
-
-          {/* Twin.fun */}
-          <ProjectCard 
-            icon={<Users className="w-12 h-12 text-pink-400" />}
-            title="Twin.fun"
-            subtitle="Trade Digital Minds"
-            imageSrc="/Twin.fun.PNG"
-            description={
-              <>
-                Trade onchain keys for AI digital twins modeled after real people&apos;s ideas. Key value grows with demand via a transparent bonding curve. Unlock chat, debate, and pitch access to these AI minds. Collaborate, learn, and earn from specialized intelligence.{" "}
-                <a 
-                  href="https://x.com/OpenGradient/status/1991614858153062723?s=20" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
-                >
-                  ...
-                </a>
-              </>
-            }
-            link="https://www.twin.fun"
-            gradient="from-pink-500/20 to-rose-500/5"
-            borderColor="border-pink-500/30"
-          />
-
-          {/* BitQuant */}
-          <ProjectCard 
-            icon={<BarChart3 className="w-12 h-12 text-blue-400" />}
-            title="BitQuant"
-            subtitle="Your Personal AI Quant"
-            videoSrc="/BITQUAN.mp4"
-            description={
-              <>
-                Your personal AI Quant for DeFi. BitQuant leverages advanced machine learning and real time on chain data to democratize quantitative analysis. Simply ask in plain English &apos;Analyze token risk&apos; or &apos;Optimize my portfolio&apos; to get institutional grade insights, charts, and data driven strategies instantly.{" "}
-                <a 
-                  href="https://www.opengradient.ai/blog/meet-bitquant-crypto-ai-quant" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-cyan-400 hover:text-cyan-300 transition-colors"
-                >
-                  ...
-                </a>
-              </>
-            }
-            link="https://www.bitquant.io/"
-            gradient="from-blue-500/20 to-cyan-500/5"
-            borderColor="border-blue-500/30"
-            onVideoClick={() => setSelectedVideo("/BITQUAN.mp4")}
-          />
-
-        </div>
-      </section>
-
-      {/* Why Important */}
-      <section className="py-20 px-4 relative z-10 bg-gradient-to-b from-transparent to-black/40">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold mb-10 text-center">Why is this important for beginners?</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <FeatureItem text="Free tools to start in Web3 and AI" />
-            <FeatureItem text="Your personal AI Quant for DeFi with institutional-grade insights" />
-            <FeatureItem text="Control your attention and memory" />
-            <FeatureItem text="Everything is open, transparent, and secure thanks to blockchain" />
-          </div>
-        </div>
-      </section>
-
-      {/* Community / Help */}
-      <section className="py-10 px-4 relative z-10 text-center">
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="inline-block p-8 rounded-3xl bg-gradient-to-r from-indigo-500/10 to-purple-500/10 border border-white/10 backdrop-blur-md max-w-2xl mx-auto"
-        >
-          <h3 className="text-2xl font-bold mb-4 text-white">Still have questions?</h3>
-          <p className="text-gray-300 mb-8 text-lg leading-relaxed">
-            If something isn&apos;t clear or you want to learn more, join the official community! 
-            Ask questions, get help, and meet other beginners.
-          </p>
-          <a 
-            href="https://discord.com/invite/2t5sx5BCpB" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="inline-flex items-center px-8 py-4 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl font-bold transition-all hover:scale-105 shadow-lg shadow-indigo-500/20 group"
-          >
-            <MessageCircle className="mr-3 w-6 h-6 group-hover:rotate-12 transition-transform" />
-            Join OpenGradient Discord
-          </a>
-        </motion.div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-10 border-t border-white/10 text-center text-gray-400 text-sm relative z-10 bg-[#0a0a12]">
-        <div className="flex justify-center items-center gap-2 mb-4">
-           <img src="/logo.png" alt="OpenGradient Logo" className="w-6 h-6 object-contain" />
-           <span className="text-white font-bold text-lg">OpenGradient</span>
-        </div>
-        <div className="flex justify-center gap-6 mb-6">
-          <FooterLink href="https://opengradient.ai" text="Website" />
-          <FooterLink href="https://twitter.com/OpenGradient" text="Twitter / X" />
-          <FooterLink href="https://github.com/OpenGradient" text="GitHub" />
-        </div>
-        <p className="mb-2 text-gray-500 text-base">
-          Made by <a href="https://x.com/OG_Cryptooo" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-medium hover:text-cyan-300 transition-colors">@OG_Cryptooo</a> | Built on <a href="https://x.com/OpenGradient" target="_blank" rel="noopener noreferrer" className="text-purple-400 font-medium hover:text-purple-300 transition-colors">@OpenGradient</a> 🚀
-        </p>
-      </footer>
-    </main>
-  );
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ProjectCard({ icon, title, subtitle, description, link, gradient, borderColor, videoSrc, imageSrc, onVideoClick }: any) {
-  return (
-    <motion.div 
-      whileHover={{ y: -10, scale: 1.02 }}
-      className={`relative p-8 rounded-3xl bg-gradient-to-br ${gradient} border ${borderColor} backdrop-blur-xl shadow-lg hover:shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-all duration-300 flex flex-col`}
-    >
-      <div className="flex justify-between items-start mb-6">
-        <div className="p-4 bg-white/5 rounded-2xl w-fit border border-white/10">{icon}</div>
+        )}
       </div>
-      
-      <h3 className="text-2xl font-bold mb-2 text-white">{title}</h3>
-      <h4 className="text-sm font-semibold text-gray-400 mb-6 uppercase tracking-wider">{subtitle}</h4>
-      
-      {videoSrc && (
-        <div 
-          className="mb-6 rounded-xl overflow-hidden border border-white/10 shadow-lg cursor-pointer group/video relative"
-          onClick={onVideoClick}
-        >
-          <div className="absolute inset-0 bg-black/0 group-hover/video:bg-black/20 transition-colors z-10 flex items-center justify-center">
-            <div className="opacity-0 group-hover/video:opacity-100 transition-opacity transform scale-90 group-hover/video:scale-100 bg-white/20 backdrop-blur-sm rounded-full p-3">
-              <ExternalLink className="text-white w-6 h-6" />
-            </div>
+    );
+  };
+
+
+  return (
+    <main className="min-h-screen bg-[#050505] text-green-500 font-mono overflow-hidden flex flex-col">
+      {/* Matrix-like Background */}
+      <div className="absolute inset-0 pointer-events-none opacity-10" 
+           style={{ backgroundImage: 'linear-gradient(0deg, transparent 24%, rgba(0, 255, 0, .3) 25%, rgba(0, 255, 0, .3) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, .3) 75%, rgba(0, 255, 0, .3) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(0, 255, 0, .3) 25%, rgba(0, 255, 0, .3) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, .3) 75%, rgba(0, 255, 0, .3) 76%, transparent 77%, transparent)', backgroundSize: '50px 50px' }}>
+      </div>
+
+      {/* Header */}
+      <header className="border-b border-green-900/50 p-4 flex justify-between items-center bg-[#0a0a0a]/90 backdrop-blur z-10">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 border border-green-500/50 rounded flex items-center justify-center bg-green-500/10 relative overflow-hidden">
+             <Image src="/avatar.png" alt="Logo" fill className="object-cover" />
           </div>
-          <video 
-            src={videoSrc} 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
-            className="w-full h-auto object-cover"
-          />
+          <div>
+            <h1 className="text-xl font-bold tracking-widest text-white">TERMINAL AI</h1>
+            <p className="text-xs text-green-600">v2.4.0 // CONNECTED</p>
+          </div>
         </div>
-      )}
-
-      {imageSrc && !videoSrc && (
-        <div className="mb-6 rounded-xl overflow-hidden border border-white/10 shadow-lg">
-           <img 
-            src={imageSrc} 
-            alt={title}
-            className="w-full h-auto object-cover"
-          />
+        <div className="flex gap-6 text-xs uppercase tracking-widest items-center">
+          <button 
+            onClick={handleReset}
+            className="flex items-center gap-2 text-red-400 hover:text-red-300 border border-red-900/30 hover:border-red-500/50 bg-red-950/10 px-3 py-1 rounded transition-all group"
+            title="Reset Session"
+          >
+            <RefreshCw className="w-3 h-3 group-hover:rotate-180 transition-transform duration-500" />
+            NEW CHAT
+          </button>
+          <div className="w-px h-6 bg-green-900/50 mx-2" />
+          <div className="flex items-center gap-2 text-green-400">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+            System Online
+          </div>
+          <div className="flex items-center gap-2 text-blue-400">
+            <Globe className="w-3 h-3" />
+            Base: Active
+          </div>
         </div>
-      )}
+      </header>
 
-      <p className="text-gray-300 mb-8 flex-grow leading-relaxed">{description}</p>
-      <a 
-        href={link} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="mt-auto inline-flex items-center justify-center w-full py-3 px-6 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl font-medium transition-colors group"
-      >
-        Try It
-        <ExternalLink size={16} className="ml-2 group-hover:rotate-45 transition-transform" />
-      </a>
-    </motion.div>
-  );
-}
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* Sidebar (Widgets) - REMOVED per user request */}
+        {/* <aside className="w-80 border-r border-green-900/30 bg-[#080808]/50 p-4 hidden md:flex flex-col gap-6">
+           ...
+        </aside> */}
+        
+        {/* Chat Interface */}
+        <section className="flex-1 flex flex-col relative">
+          <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scrollbar-thin scrollbar-thumb-green-900 scrollbar-track-transparent">
+            {messages.length <= 1 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto my-12">
+                    {[
+                        { title: "INITIALIZE SCAN: TRENDING", prompt: "What are the trending tokens on Base?", icon: TrendingUp },
+                        { title: "RUN PROTOCOL: YIELD FARMING", prompt: "Find best yield opportunities on Base", icon: Zap },
+                        { title: "EXECUTE: RISK ANALYSIS", prompt: "START_RISK_ANALYSIS", icon: ShieldCheck },
+                        { title: "ACCESS: PORTFOLIO DATA", prompt: "Analyze my portfolio with DeBank", icon: Activity }
+                    ].map((item, i) => (
+                        <button 
+                            key={i}
+                            onClick={() => handleSuggestionClick(item.prompt)}
+                            className="group relative border border-green-900/50 bg-black/40 p-6 text-left hover:bg-green-900/10 hover:border-green-500/50 transition-all overflow-hidden"
+                        >
+                            <div className="absolute inset-0 bg-green-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="flex items-center gap-3 mb-2 text-green-400 group-hover:text-green-300">
+                                <item.icon className="w-5 h-5" />
+                                <span className="text-xs font-bold tracking-widest">{item.title}</span>
+                            </div>
+                            <p className="text-xs text-green-700 group-hover:text-green-600 font-mono">
+                                {">"} {item.prompt}
+                            </p>
+                        </button>
+                    ))}
+                </div>
+            )}
 
-function FeatureItem({ text }: { text: string }) {
-  return (
-    <motion.div 
-      whileHover={{ x: 5 }}
-      className="flex items-center p-4 bg-white/5 rounded-xl border border-white/5"
-    >
-      <div className="w-2 h-2 rounded-full bg-green-400 mr-4 shadow-[0_0_10px_#4ade80]" />
-      <span className="text-gray-200">{text}</span>
-    </motion.div>
-  );
-}
+            {messages.map((msg, idx) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`max-w-[80%] p-4 rounded-sm border ${
+                  msg.role === 'user' 
+                    ? 'bg-green-900/10 border-green-500/30 text-green-100' 
+                    : 'bg-black/60 border-green-900/50 text-green-400'
+                }`}>
+                  <div className="text-[10px] uppercase tracking-widest mb-1 opacity-50 flex items-center gap-2">
+                    {msg.role === 'user' ? (
+                      <>USER <span className="w-1 h-1 bg-green-500 rounded-full" /></>
+                    ) : (
+                      <><Cpu className="w-3 h-3" /> NEXUS CORE</>
+                    )}
+                  </div>
+                  {renderMessageContent(msg.content)}
+                </div>
+              </motion.div>
+            ))}
+            {isLoading && (
+               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                 <div className="bg-black/60 border border-green-900/50 p-4 rounded-sm flex items-center gap-2 text-green-500">
+                   <span className="w-2 h-2 bg-green-500 animate-ping rounded-full" />
+                   PROCESSING DATA STREAM...
+                 </div>
+               </motion.div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
 
-function FooterLink({ href, text }: { href: string, text: string }) {
-  return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="hover:text-purple-400 transition-colors">
-      {text}
-    </a>
+          {/* Input Area */}
+          <div className="p-4 border-t border-green-900/30 bg-black/80 backdrop-blur">
+            <form onSubmit={handleSubmit} className="flex gap-4 max-w-4xl mx-auto">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="ENTER COMMAND OR QUERY..."
+                  className="w-full bg-black/50 border border-green-700/50 rounded p-4 pl-6 text-green-100 placeholder-green-800 focus:outline-none focus:border-green-400 focus:ring-1 focus:ring-green-400/20 font-mono transition-all"
+                />
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 text-green-700">{">"}</div>
+              </div>
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="bg-green-900/20 border border-green-500/50 text-green-400 px-8 rounded hover:bg-green-500/10 hover:border-green-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                EXECUTE <Send className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

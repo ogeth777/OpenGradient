@@ -1,0 +1,1 @@
+﻿- create_basic_order: This tool should be called when a user wants to create a new basic order with specific trading parameters.

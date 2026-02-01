@@ -1,0 +1,852 @@
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+import axios from "axios";
+
+// --- Standalone Data Fetching Functions ---
+
+// --- In-Memory Cache ---
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 Minutes Cache
+const cache: Record<string, { timestamp: number, data: any }> = {};
+
+function getTradeUrl(address: string, chain: string): string {
+    if (!address || address === "N/A") return "";
+    const c = chain.toLowerCase();
+    if (c.includes("base")) return `https://app.uniswap.org/swap?chain=base&outputCurrency=${address}`;
+    if (c.includes("solana")) return `https://jup.ag/swap/${address}`;
+    if (c.includes("ethereum")) return `https://app.uniswap.org/swap?chain=mainnet&outputCurrency=${address}`;
+    return "";
+}
+
+function getSecurityUrl(address: string, chain: string): string {
+    if (!address || address === "N/A") return "";
+    const c = chain.toLowerCase();
+    if (c.includes("base")) return `https://gopluslabs.io/token-security/8453/${address}`;
+    if (c.includes("ethereum")) return `https://gopluslabs.io/token-security/1/${address}`;
+    if (c.includes("solana")) return `https://gopluslabs.io/token-security/solana/${address}`;
+    return "";
+}
+
+function sanitizeImage(url: string | undefined | null, address?: string, chain?: string): string {
+    // If address is provided, prefer DexScreener for Base/Solana as they are faster/better for memes
+    if (address && chain) {
+        if (chain.includes("base")) {
+            return `https://dd.dexscreener.com/ds-data/tokens/base/${address}.png`;
+        }
+    }
+    
+    // Fallback to provided URL
+    if (!url || typeof url !== 'string') return "";
+    if (url.includes("missing_large.png") || url.includes("missing_small.png")) {
+         // Try fallback again if we have address but didn't match chain condition above (or generic fallback)
+         if (address && chain && chain.includes("base")) {
+              return `https://dd.dexscreener.com/ds-data/tokens/base/${address}.png`;
+         }
+         return "";
+    }
+    if (!url.startsWith("http")) return "";
+    return url;
+}
+
+export async function fetchTrendingTokens(chain?: string) {
+  const cacheKey = `trending-${chain || "global"}`;
+  if (cache[cacheKey] && (Date.now() - cache[cacheKey].timestamp < CACHE_TTL_MS)) {
+      console.log(`Returning cached trending tokens for ${cacheKey}`);
+      return cache[cacheKey].data;
+  }
+
+  try {
+    let coins = [];
+    let source = "CoinGecko Global Trending";
+
+    if (chain && chain.toLowerCase().includes("base")) {
+      // 1. Try GeckoTerminal (DEX Trending) - Best for "Hot" tokens
+      try {
+          // Fetch more pools to allow filtering
+          const poolRes = await axios.get("https://api.geckoterminal.com/api/v2/networks/base/trending_pools?page=1");
+          // Take top 30 to filter
+          const rawPools = poolRes.data.data.slice(0, 30);
+          
+          // Filter out low MC tokens (< $500k) to match "CMC" style quality
+          // And deduplicate by token address
+          const uniqueTokens = new Map();
+          const filteredPools = [];
+          
+          for (const p of rawPools) {
+              const mcap = parseFloat(p.attributes.market_cap_usd || p.attributes.fdv_usd || "0");
+              const addr = p.relationships.base_token.data.id.replace("base_", "");
+              
+              if (mcap > 500000 && !uniqueTokens.has(addr)) {
+                  uniqueTokens.set(addr, true);
+                  filteredPools.push(p);
+              }
+              if (filteredPools.length >= 10) break;
+          }
+
+          const addresses = filteredPools.map((p: any) => p.relationships.base_token.data.id.replace("base_", ""));
+          const addressStr = addresses.join(",");
+
+          const tokenRes = await axios.get(`https://api.geckoterminal.com/api/v2/networks/base/tokens/multi/${addressStr}`);
+          const tokenMap = new Map();
+          tokenRes.data.data.forEach((t: any) => {
+              tokenMap.set(t.attributes.address.toLowerCase(), {
+                  name: t.attributes.name,
+                  symbol: t.attributes.symbol,
+                  image: t.attributes.image_url
+              });
+          });
+
+          coins = filteredPools.map((p: any) => {
+              const addr = p.relationships.base_token.data.id.replace("base_", "");
+              const info = tokenMap.get(addr.toLowerCase()) || { name: "Unknown", symbol: "???", image: "" };
+              return {
+                  name: info.name,
+                  symbol: info.symbol.toUpperCase(),
+                  current_price: parseFloat(p.attributes.base_token_price_usd),
+                  market_cap: parseFloat(p.attributes.market_cap_usd || p.attributes.fdv_usd || "0"),
+                  price_change_percentage_24h: parseFloat(p.attributes.price_change_percentage.h24 || "0"),
+                  image: sanitizeImage(info.image, addr, "base"),
+                  link: `https://geckoterminal.com/base/pools/${p.attributes.address}`,
+                  trade_url: getTradeUrl(addr, "base"),
+                  security_url: getSecurityUrl(addr, "base"),
+                  address: addr,
+                  id: p.id
+              };
+          });
+          
+          source = "GeckoTerminal Base Trending";
+          const result = { source, tokens: coins };
+          cache[cacheKey] = { timestamp: Date.now(), data: result };
+          return result;
+
+      } catch (e: any) {
+           console.error("GeckoTerminal Error:", e.message);
+           // Fallback to CoinGecko Markets below
+      }
+
+      // 2. Fallback: CoinGecko Base Markets (Volume based)
+      try {
+        const response = await axios.get(
+          "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&category=base-ecosystem&order=volume_desc&per_page=20&page=1&sparkline=false&price_change_percentage=24h"
+        );
+        coins = response.data.map((item: any) => ({
+            name: item.name,
+            symbol: item.symbol.toUpperCase(),
+            current_price: item.current_price,
+            market_cap: item.market_cap,
+            price_change_percentage_24h: item.price_change_percentage_24h || 0,
+            image: sanitizeImage(item.image),
+            link: `https://www.coingecko.com/en/coins/${item.id}`,
+            trade_url: "", // No address easily available for volume fallback without extra calls
+            security_url: "",
+            id: item.id
+        }));
+        source = "CoinGecko Base Trending (Volume)";
+      } catch (e: any) {
+        if (e.response?.status === 429) {
+            console.warn("Rate limit hit on trending fetch.");
+            return { source: "Rate Limited", tokens: [], error: "Rate limit exceeded. Please try again later." };
+        }
+        throw e;
+      }
+    } else {
+      // Global Trending
+      try {
+        const response = await axios.get("https://api.coingecko.com/api/v3/search/trending");
+        coins = response.data.coins.map((item: any) => ({
+            name: item.item.name,
+            symbol: item.item.symbol,
+            market_cap_rank: item.item.market_cap_rank,
+            price_btc: item.item.price_btc,
+            current_price: item.item.data?.price, 
+            market_cap: item.item.data?.market_cap_btc ? item.item.data.market_cap_btc * 100000 : 0, 
+            price_change_percentage_24h: item.item.data?.price_change_percentage_24h?.usd || 0,
+            image: sanitizeImage(item.item.large),
+            link: `https://www.coingecko.com/en/coins/${item.item.id}`,
+            trade_url: "",
+            security_url: "",
+            id: item.item.id
+        }));
+      } catch (e: any) {
+        if (e.response?.status === 429) {
+             console.warn("Rate limit hit on trending fetch.");
+             return { source: "Rate Limited", tokens: [], error: "Rate limit exceeded. Please try again later." };
+        }
+        throw e;
+      }
+    }
+
+    // Process top 9 for details (Address, real price/mcap if missing)
+    // Use sequential execution to avoid rate limits
+    const tokensWithAddresses = [];
+    const topCoins = coins.slice(0, 9);
+
+    for (const item of topCoins) {
+        let address = "N/A";
+        let finalPrice = item.current_price;
+        let finalMcap = item.market_cap;
+
+        try {
+            // Add delay to avoid rate limits (sequential)
+            await new Promise(r => setTimeout(r, 1200)); 
+            const detail = await axios.get(`https://api.coingecko.com/api/v3/coins/${item.id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`);
+            
+            // Get Address
+            const platforms = detail.data.platforms || {};
+            if (chain && chain.includes("base")) {
+                address = platforms["base"] || platforms["base-v2"] || Object.values(platforms)[0] || "N/A";
+            } else if (chain && chain.includes("solana")) {
+                address = platforms["solana"] || Object.values(platforms)[0] || "N/A";
+            } else {
+                address = platforms["base"] || platforms["ethereum"] || platforms["solana"] || Object.values(platforms)[0] || "N/A";
+            }
+
+            // Get better market data if missing or string
+            if (detail.data.market_data) {
+                finalPrice = detail.data.market_data.current_price?.usd || finalPrice;
+                finalMcap = detail.data.market_data.market_cap?.usd || finalMcap;
+            }
+        } catch (e: any) {
+            console.error(`Failed to fetch details for ${item.id}: ${e.message}`);
+            // If 429, we might want to stop fetching details for subsequent items to save time/quota
+            // But for now we just fallback to basic info for this item
+        }
+
+        // Clean up price/mcap if they are strings (from trending api) to numbers for consistency
+        if (typeof finalPrice === 'string') finalPrice = parseFloat(finalPrice.replace(/[$,]/g, ''));
+        if (typeof finalMcap === 'string') finalMcap = parseFloat(finalMcap.replace(/[$,]/g, ''));
+
+        tokensWithAddresses.push({
+            ...item,
+            current_price: finalPrice,
+            market_cap: finalMcap,
+            address: address
+        });
+    }
+
+    // Return structured data
+    const result = {
+      source,
+      tokens: tokensWithAddresses
+    };
+    
+    // Cache result
+    cache[cacheKey] = { timestamp: Date.now(), data: result };
+    
+    return result;
+  } catch (error) {
+    console.error("Error fetching trending tokens:", error);
+    throw new Error(`Error fetching trending tokens: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
+
+export async function fetchTopGainers(chain?: string) {
+  try {
+    let url = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h";
+    
+    if (chain && chain.toLowerCase().includes("base")) {
+      url += "&category=base-ecosystem";
+    }
+
+    let response;
+    try {
+        response = await axios.get(url);
+    } catch (e: any) {
+        if (e.response?.status === 429) {
+            console.warn("Rate limit hit on top gainers fetch.");
+            return { source: "Rate Limited", tokens: [], error: "Rate limit exceeded. Please try again later." };
+        }
+        throw e;
+    }
+
+    const sortedCoins = response.data
+      .sort((a: any, b: any) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0))
+      .slice(0, 8);
+
+    // Fetch contract addresses for top 6 (reduced from 8)
+    // Use sequential execution
+    const tokensWithAddresses = [];
+    const topCoins = sortedCoins.slice(0, 6);
+
+    for (const item of topCoins) {
+      let address = "N/A";
+      try {
+        // Add delay to avoid rate limits (sequential)
+        await new Promise(r => setTimeout(r, 1200)); 
+        const detail = await axios.get(`https://api.coingecko.com/api/v3/coins/${item.id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`);
+        
+        // Prioritize requested chain, fallback to any
+        const platforms = detail.data.platforms || {};
+        if (chain && chain.includes("base")) {
+            address = platforms["base"] || platforms["base-v2"] || Object.values(platforms)[0] || "N/A";
+        } else if (chain && chain.includes("solana")) {
+            address = platforms["solana"] || Object.values(platforms)[0] || "N/A";
+        } else {
+            // Prefer EVM/Solana over others if global
+            address = platforms["base"] || platforms["ethereum"] || platforms["solana"] || Object.values(platforms)[0] || "N/A";
+        }
+      } catch (e: any) {
+        console.error(`Failed to fetch address for ${item.id}: ${e.message}`);
+      }
+
+      tokensWithAddresses.push({
+        name: item.name,
+        symbol: item.symbol.toUpperCase(),
+        current_price: item.current_price,
+        market_cap: item.market_cap,
+        price_change_percentage_24h: item.price_change_percentage_24h || 0,
+        image: sanitizeImage(item.image),
+        link: `https://www.coingecko.com/en/coins/${item.id}`,
+        id: item.id,
+        address: address
+      });
+    }
+
+    return { source: chain?.includes("base") ? "CoinGecko Top Gainers (Base)" : "CoinGecko Top Gainers (Global)", tokens: tokensWithAddresses };
+  } catch (error) {
+    throw new Error(`Error fetching top gainers: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
+
+export async function fetchYieldOpportunities(chain: string) {
+  try {
+    // DefiLlama Pools API
+    const response = await axios.get("https://yields.llama.fi/pools");
+    const allPools = response.data.data;
+    
+    // Map common chain names to DefiLlama chain names
+    const chainMap: Record<string, string> = {
+      "base": "Base",
+      "solana": "Solana",
+      "ethereum": "Ethereum",
+      "arbitrum": "Arbitrum"
+    };
+    
+    const targetChain = chainMap[chain.toLowerCase()] || "Base";
+    
+    // Filter by chain and sort by APY (descending), take top 5 safe-ish pools (TVL > 1M)
+    const filteredPools = allPools
+      .filter((p: any) => p.chain === targetChain && p.tvlUsd > 1000000 && p.apy < 500) // Filter out crazy APYs and low TVL
+      .sort((a: any, b: any) => b.apy - a.apy)
+      .slice(0, 5)
+      .map((p: any) => ({
+        project: p.project,
+        symbol: p.symbol,
+        pool: p.pool,
+        apy: p.apy, // Keep as number for raw data
+        tvl: p.tvlUsd, // Keep as number
+        chain: p.chain,
+        link: `https://defillama.com/yields/pool/${p.pool}`
+      }));
+
+    return filteredPools;
+  } catch (error) {
+    console.error("Error fetching yield data:", error);
+    throw new Error(`Error fetching yield data: ${error instanceof Error ? error.message : "Unknown error"}`);
+  }
+}
+
+export async function fetchTokenRisk(token: string, chain: string = "base") {
+    try {
+      let coinId = null;
+      let fullData = null;
+      
+      // Map common chain names to CoinGecko platform IDs
+      const platformMap: Record<string, string> = {
+          "base": "base",
+          "ethereum": "ethereum",
+          "eth": "ethereum",
+          "solana": "solana",
+          "sol": "solana",
+          "bsc": "binance-smart-chain",
+          "bnb": "binance-smart-chain",
+          "arbitrum": "arbitrum-one",
+          "arb": "arbitrum-one",
+          "optimism": "optimistic-ethereum",
+          "op": "optimistic-ethereum",
+          "polygon": "polygon-pos",
+          "matic": "polygon-pos",
+          "avalanche": "avalanche",
+          "avax": "avalanche",
+          "blast": "blast",
+          "scroll": "scroll",
+          "linea": "linea",
+          "zksync": "zksync"
+      };
+
+      const platformId = platformMap[chain.toLowerCase()] || "base";
+
+      // 1. Check if input is an address
+      if (token.startsWith("0x") && token.length === 42) {
+          try {
+              const contractRes = await axios.get(`https://api.coingecko.com/api/v3/coins/${platformId}/contract/${token}`);
+              fullData = contractRes.data;
+              coinId = fullData.id;
+          } catch (e) {
+              console.log(`Token not found on ${platformId} by address ${token}, trying global search...`);
+          }
+      } else if (platformId === "solana" && token.length > 30) {
+           // Basic Solana address check (length usually 32-44 chars)
+           try {
+              const contractRes = await axios.get(`https://api.coingecko.com/api/v3/coins/solana/contract/${token}`);
+              fullData = contractRes.data;
+              coinId = fullData.id;
+           } catch (e) {
+               console.log(`Token not found on Solana by address ${token}, trying global search...`);
+           }
+      }
+
+      // 2. If not found by address or not an address, search by name/symbol
+      if (!coinId) {
+          const searchRes = await axios.get(`https://api.coingecko.com/api/v3/search?query=${token}`);
+          coinId = searchRes.data.coins.length > 0 ? searchRes.data.coins[0].id : null;
+      }
+
+      if (!coinId) {
+        return { error: "Token not found on CoinGecko" };
+      }
+
+      // 3. Get Market Data (Standardized)
+      let data: any = {};
+      
+      if (fullData) {
+          // Map detailed data to flat structure
+          data = {
+              name: fullData.name,
+              symbol: fullData.symbol,
+              current_price: fullData.market_data?.current_price?.usd || 0,
+              market_cap: fullData.market_data?.market_cap?.usd || 0,
+              price_change_percentage_24h: fullData.market_data?.price_change_percentage_24h || 0,
+              id: fullData.id,
+              image: fullData.image?.large
+          };
+      } else {
+          // Fetch from markets endpoint
+          const marketRes = await axios.get(`https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${coinId}`);
+          data = marketRes.data[0];
+      }
+
+      if (!data) return { error: "Market data not found" };
+
+      // 4. Calculate Pseudo-Risk Score
+      // Factors: Market Cap (Lower = Higher Risk), Price Change 24h (Higher Volatility = Higher Risk)
+      let riskScore = 50;
+      
+      // Market Cap Adjustment
+      if (data.market_cap < 10000000) riskScore += 30; // < $10M Cap
+      else if (data.market_cap < 100000000) riskScore += 10; // < $100M Cap
+      else riskScore -= 10; // > $100M Cap
+
+      // Volatility Adjustment
+      const volatility = Math.abs(data.price_change_percentage_24h);
+      if (volatility > 10) riskScore += 20;
+      else if (volatility > 5) riskScore += 10;
+
+      // Cap at 100
+      riskScore = Math.min(Math.max(riskScore, 0), 100);
+      const riskLevel = riskScore > 75 ? "High" : riskScore > 40 ? "Medium" : "Low";
+
+      return {
+        token: data.name,
+        symbol: data.symbol.toUpperCase(),
+        current_price: data.current_price,
+        market_cap: data.market_cap,
+        price_change_24h: data.price_change_percentage_24h,
+        risk_analysis: {
+          score: riskScore,
+          level: riskLevel,
+          factors: [
+            data.market_cap < 100000000 ? "Low Market Cap (High Risk)" : "Healthy Market Cap",
+            volatility > 10 ? "High Volatility (High Risk)" : "Stable Price Action"
+          ]
+        },
+        source: "CoinGecko Data Analysis",
+        link: `https://www.coingecko.com/en/coins/${data.id}`,
+        trade_url: getTradeUrl(token, chain), // Assuming input token is address, or we need to find it. 
+        // Actually fetchTokenRisk doesn't return the address explicitly if searched by name. 
+        // But if token was address, we have it. 
+        // Let's add address to the return object if we have it.
+        address: fullData?.platforms?.[platformId] || (token.startsWith("0x") ? token : ""),
+        security_url: getSecurityUrl(fullData?.platforms?.[platformId] || (token.startsWith("0x") ? token : ""), chain)
+      };
+
+    } catch (error) {
+      throw new Error(`Error analyzing token risk: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+}
+
+// --- LangChain Tools Wrappers ---
+
+export const getTrendingTokensTool = tool(
+  async ({ chain }) => {
+    try {
+      const result = await fetchTrendingTokens(chain);
+      return JSON.stringify(result, null, 2);
+    } catch (error: any) {
+      return error.message;
+    }
+  },
+  {
+    name: "get_trending_tokens",
+    description: "Get the latest trending tokens from CoinGecko.",
+    schema: z.object({
+      chain: z.enum(["base", "solana"]).describe("The blockchain network (Note: Currently returns global trends due to API limits)"),
+    }),
+  }
+);
+
+export const getTopGainersTool = tool(
+  async ({ chain }) => {
+    try {
+      const result = await fetchTopGainers(chain);
+      return JSON.stringify(result, null, 2);
+    } catch (error: any) {
+      return error.message;
+    }
+  },
+  {
+    name: "get_top_gainers",
+    description: "Get the top gaining tokens (highest 24h increase) from the market.",
+    schema: z.object({
+      chain: z.enum(["base", "solana"]).optional().describe("The blockchain network (Optional)"),
+    }),
+  }
+);
+
+export const getYieldOpportunitiesTool = tool(
+  async ({ chain }) => {
+    try {
+      const result = await fetchYieldOpportunities(chain);
+      // Format for text output
+      const formatted = result.map((p: any) => ({
+          ...p,
+          apy: `${p.apy.toFixed(2)}%`,
+          tvl: `$${(p.tvl / 1000000).toFixed(2)}M`
+      }));
+      if (formatted.length === 0) return `No yield opportunities found for ${chain} with TVL > $1M`;
+      return JSON.stringify(formatted, null, 2);
+    } catch (error: any) {
+      return error.message;
+    }
+  },
+  {
+    name: "get_yield_opportunities",
+    description: "Find the best yield opportunities/farming for a specific blockchain using DefiLlama data.",
+    schema: z.object({
+      chain: z.enum(["base", "solana"]).describe("The blockchain network to check"),
+    }),
+  }
+);
+
+export const evaluateTokenRiskTool = tool(
+  async ({ token, chain }) => {
+    try {
+        const result = await fetchTokenRisk(token, chain);
+        if ('error' in result) return JSON.stringify(result);
+        
+        // Format for text output
+        const formatted = {
+            ...result,
+            current_price: `$${result.current_price}`,
+            market_cap: `$${result.market_cap?.toLocaleString()}`,
+            price_change_24h: `${result.price_change_24h?.toFixed(2)}%`
+        };
+        return JSON.stringify(formatted, null, 2);
+    } catch (error: any) {
+      return error.message;
+    }
+  },
+  {
+    name: "evaluate_token_risk",
+    description: "Analyze the risk level of a specific token based on real market data.",
+    schema: z.object({
+      token: z.string().describe("The token symbol or name (e.g., 'BRETT', 'WIF')"),
+      chain: z.string().describe("The blockchain network"),
+    }),
+  }
+);
+
+export async function fetchMultiChainPortfolio(address: string) {
+    // Extended Chain List (User requested "all networks")
+    const chains = [
+        { id: "ethereum", rpc: "https://ethereum.publicnode.com", coinId: "ethereum", symbol: "ETH" },
+        { id: "bsc", rpc: "https://bsc-dataseed.binance.org", coinId: "binancecoin", symbol: "BNB" },
+        { id: "base", rpc: "https://mainnet.base.org", coinId: "ethereum", symbol: "ETH" },
+        { id: "arbitrum", rpc: "https://arb1.arbitrum.io/rpc", coinId: "ethereum", symbol: "ETH" },
+        { id: "optimism", rpc: "https://optimism.drpc.org", coinId: "ethereum", symbol: "ETH" },
+        { id: "polygon", rpc: "https://polygon-rpc.com", coinId: "matic-network", symbol: "POL" },
+        { id: "avalanche", rpc: "https://api.avax.network/ext/bc/C/rpc", coinId: "avalanche-2", symbol: "AVAX" },
+        { id: "blast", rpc: "https://rpc.blast.io", coinId: "ethereum", symbol: "ETH" },
+        { id: "scroll", rpc: "https://rpc.scroll.io", coinId: "ethereum", symbol: "ETH" },
+        { id: "linea", rpc: "https://rpc.linea.build", coinId: "ethereum", symbol: "ETH" },
+        { id: "zksync", rpc: "https://mainnet.era.zksync.io", coinId: "ethereum", symbol: "ETH" }
+    ];
+
+    // Common Tokens to Scan (USDT, USDC, DAI, etc.) to capture hidden value
+    const COMMON_TOKENS: Record<string, Array<{ address: string, symbol: string, decimals: number, coinId: string }>> = {
+        "bsc": [
+            { address: "0x55d398326f99059fF775485246999027B3197955", symbol: "USDT", decimals: 18, coinId: "tether" },
+            { address: "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", symbol: "USDC", decimals: 18, coinId: "usd-coin" },
+            { address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56", symbol: "BUSD", decimals: 18, coinId: "binance-usd" },
+            { address: "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", symbol: "BTCB", decimals: 18, coinId: "bitcoin" }
+        ],
+        "ethereum": [
+            { address: "0xdAC17F958D2ee523a2206206994597C13D831ec7", symbol: "USDT", decimals: 6, coinId: "tether" },
+            { address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", symbol: "USDC", decimals: 6, coinId: "usd-coin" },
+            { address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", symbol: "DAI", decimals: 18, coinId: "dai" },
+            { address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", symbol: "WBTC", decimals: 8, coinId: "wrapped-bitcoin" }
+        ],
+        "base": [
+             { address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", symbol: "USDC", decimals: 6, coinId: "usd-coin" }, // Native USDC
+             { address: "0xfde4c96c8593536e31f229ea8f37b2ada2699bb2", symbol: "USDT", decimals: 6, coinId: "tether" },   // Bridged USDT
+             { address: "0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA", symbol: "USDC.e", decimals: 6, coinId: "usd-coin" }, // Bridged USDC
+             { address: "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", symbol: "DAI", decimals: 18, coinId: "dai" },
+             { address: "0x4DCDCf6452ef4cd1b4748B89a43e4eb291410c85", symbol: "AIXBT", decimals: 18, coinId: "aixbt" },
+             { address: "0x0b3e328455c4059eeb9e37430e58a8458b9ec976", symbol: "VIRTUAL", decimals: 18, coinId: "virtual-protocol" },
+             { address: "0x532f27101965dd16442E59d40670FaF5eBB142E4", symbol: "BRETT", decimals: 18, coinId: "brett-based" },
+             { address: "0x4ed4E862860beD51a9570b96d89aF5E1B0Efefed", symbol: "DEGEN", decimals: 18, coinId: "degen-base" },
+             { address: "0x940181a94A35A4569E4529A3CDfB74e38FD98631", symbol: "AERO", decimals: 18, coinId: "aerodrome-finance" },
+             { address: "0x4200000000000000000000000000000000000006", symbol: "WETH", decimals: 18, coinId: "ethereum" }
+          ],
+        "arbitrum": [
+             { address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", symbol: "USDC", decimals: 6, coinId: "usd-coin" },
+             { address: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8", symbol: "USDC.e", decimals: 6, coinId: "usd-coin" }, // Bridged
+             { address: "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", symbol: "USDT", decimals: 6, coinId: "tether" },
+             { address: "0x912CE59144191C1204E64559FE8253a0e49E6548", symbol: "ARB", decimals: 18, coinId: "arbitrum" },
+             { address: "0x09CC42744D6319200388912C09C76211470F504e", symbol: "LIG", decimals: 18, coinId: "lighter" }
+          ],
+          "optimism": [
+              { address: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", symbol: "USDT", decimals: 6, coinId: "tether" },
+              { address: "0x0b2C639c533813f4Aa9D7837CAf992c92bd58209D", symbol: "USDC", decimals: 6, coinId: "usd-coin" }, // Native
+              { address: "0x7F5c763cE663a6c27812a6a6952721C07163c999", symbol: "USDC.e", decimals: 6, coinId: "usd-coin" }, // Bridged
+              { address: "0x4200000000000000000000000000000000000042", symbol: "OP", decimals: 18, coinId: "optimism" }
+           ],
+        "polygon": [
+            { address: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", symbol: "USDT", decimals: 6, coinId: "tether" },
+            { address: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", symbol: "USDC", decimals: 6, coinId: "usd-coin" }
+        ],
+        "avalanche": [
+             { address: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7", symbol: "USDT", decimals: 6, coinId: "tether" },
+             { address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", symbol: "USDC", decimals: 6, coinId: "usd-coin" },
+             { address: "0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664", symbol: "USDC.e", decimals: 6, coinId: "usd-coin" }
+         ],
+        "blast": [
+             { address: "0x4300000000000000000000000000000000000003", symbol: "USDB", decimals: 18, coinId: "usdb" },
+             { address: "0xb1a5700fA2358173Fe465e6eA4Ff52E36e88E2ad", symbol: "BLAST", decimals: 18, coinId: "blast" },
+             { address: "0x4300000000000000000000000000000000000004", symbol: "WETH", decimals: 18, coinId: "weth" },
+             { address: "0x37c99824686b245484ea28271788775421712783", symbol: "PAC", decimals: 18, coinId: "pac-man" }
+          ],
+        "scroll": [
+            { address: "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4", symbol: "USDC", decimals: 6, coinId: "usd-coin" }
+        ]
+    };
+
+    try {
+        // 1. Prepare Coin IDs for Price Fetching
+        const allCoinIds = new Set<string>();
+        chains.forEach(c => allCoinIds.add(c.coinId));
+        Object.values(COMMON_TOKENS).flat().forEach(t => allCoinIds.add(t.coinId));
+        
+        // 2. Fetch Prices (Batch)
+        const priceRes = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${Array.from(allCoinIds).join(",")}&vs_currencies=usd&include_24hr_change=true`);
+        const prices = priceRes.data;
+
+        // 3. Scan Native Balances & Tokens (Parallel across chains)
+        const chainPromises = chains.map(async (chain) => {
+            const chainAssets: any[] = [];
+            
+            // A. Native Balance
+            try {
+                const res = await axios.post(chain.rpc, {
+                    jsonrpc: "2.0",
+                    method: "eth_getBalance",
+                    params: [address, "latest"],
+                    id: 1
+                }, { timeout: 3500 });
+                
+                if (res.data.result) {
+                    const wei = parseInt(res.data.result, 16);
+                    if (!isNaN(wei) && wei > 0) {
+                        const amount = wei / 1e18;
+                        const priceInfo = prices[chain.coinId] || { usd: 0, usd_24h_change: 0 };
+                        const usdValue = amount * priceInfo.usd;
+                        
+                        if (usdValue > 0.01) { // Filter dust
+                            chainAssets.push({
+                                chain: chain.id,
+                                symbol: chain.symbol,
+                                amount: amount,
+                                usdValue: usdValue,
+                                change24h: priceInfo.usd_24h_change,
+                                isToken: false
+                            });
+                        }
+                    }
+                }
+            } catch (e) { /* Ignore RPC errors for native */ }
+
+            // B. Token Balances (if defined for this chain)
+            const tokens = COMMON_TOKENS[chain.id] || [];
+            if (tokens.length > 0) {
+                // Prepare Batch Requests if possible, but simple parallel is safer for mixed RPCs
+                await Promise.all(tokens.map(async (token) => {
+                    try {
+                        const data = "0x70a08231000000000000000000000000" + address.replace("0x", "");
+                        const res = await axios.post(chain.rpc, {
+                            jsonrpc: "2.0",
+                            method: "eth_call",
+                            params: [{ to: token.address, data: data }, "latest"],
+                            id: 1
+                        }, { timeout: 3500 });
+
+                        if (res.data.result) {
+                      const raw = parseInt(res.data.result, 16);
+                      if (!isNaN(raw) && raw > 0) {
+                        const amount = raw / Math.pow(10, token.decimals);
+                        const priceInfo = prices[token.coinId] || { usd: 0, usd_24h_change: 0 };
+                        const usdValue = amount * priceInfo.usd;
+
+                        if (usdValue > 0.50) { // Slightly higher dust threshold for tokens
+                                    chainAssets.push({
+                                        chain: chain.id,
+                                        symbol: token.symbol,
+                                        amount: amount,
+                                        usdValue: usdValue,
+                                        change24h: priceInfo.usd_24h_change,
+                                        isToken: true
+                                    });
+                                }
+                            }
+                        }
+                    } catch (e) { /* Ignore token RPC errors */ }
+                }));
+            }
+            
+            return chainAssets;
+        });
+
+        // 4. Blockscout for Base Tokens (Keep existing logic as backup/supplement)
+        const baseTokensPromise = (async () => {
+             try {
+                 const res = await axios.get(`https://base.blockscout.com/api?module=account&action=tokenlist&address=${address}`, { timeout: 4000 });
+                 if (res.data.status !== "1" || !Array.isArray(res.data.result)) return [];
+                 
+                 // Just take top 10 ERC-20s
+                 const tokens = res.data.result.filter((t: any) => t.type === "ERC-20" && t.decimals).slice(0, 10);
+                 
+                 if (tokens.length === 0) return [];
+                 
+                 const addresses = tokens.map((t: any) => t.contractAddress).join(",");
+                 
+                 // Add explicit error handling for CoinGecko
+                 let tokenPrices = {};
+                 try {
+                     const tokenPricesRes = await axios.get(`https://api.coingecko.com/api/v3/simple/token_price/base?contract_addresses=${addresses}&vs_currencies=usd&include_24hr_change=true`);
+                     tokenPrices = tokenPricesRes.data;
+                 } catch (cgError) {
+                     return [];
+                 }
+ 
+                 return tokens.map((t: any) => {
+                     const priceInfo = tokenPrices[t.contractAddress.toLowerCase()];
+                     if (!priceInfo) return null;
+                     
+                     const decimals = parseInt(t.decimals);
+                     const amount = parseFloat(t.balance) / Math.pow(10, decimals);
+                     const usdValue = amount * priceInfo.usd;
+                     
+                     if (usdValue < 0.01) return null; // Filter dust
+ 
+                     return {
+                         chain: "base",
+                         symbol: t.symbol,
+                         amount: amount,
+                         usdValue: usdValue,
+                         change24h: priceInfo.usd_24h_change,
+                         isToken: true
+                     };
+                 }).filter((t: any) => t !== null);
+ 
+             } catch (e) {
+                 return [];
+             }
+         })();
+
+        const results = await Promise.all([
+            Promise.all(chainPromises),
+            baseTokensPromise
+        ]);
+        
+        const allAssets = [
+            ...results[0].flat(),
+            ...results[1]
+        ];
+
+        // 5. Calculate Totals
+        const totalUsd = allAssets.reduce((sum: number, a: any) => sum + a.usdValue, 0);
+
+        // Weighted 24h Change
+        let totalWeightedChange = 0;
+        if (totalUsd > 0) {
+            totalWeightedChange = allAssets.reduce((sum: number, a: any) => {
+                return sum + (a.change24h * (a.usdValue / totalUsd));
+            }, 0);
+        }
+
+        return {
+            totalUsd,
+            totalChange24h: totalWeightedChange,
+            assets: allAssets.sort((a: any, b: any) => b.usdValue - a.usdValue)
+        };
+
+    } catch (error) {
+        console.error("MultiChain Fetch Error:", error);
+        return null;
+    }
+}
+
+export const analyzePortfolioTool = tool(
+  async ({ chain, address }) => {
+    if (!address) {
+        return "To analyze your portfolio using DeBank, please provide your EVM wallet address (starts with 0x).";
+    }
+
+    // Generate DeBank Link
+    const debankLink = `https://debank.com/profile/${address}`;
+    
+    // Fetch Multi-Chain Data
+    const portfolio = await fetchMultiChainPortfolio(address);
+    
+    let balanceMsg = "";
+    if (portfolio) {
+        const formattedUsd = Math.round(portfolio.totalUsd).toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0 });
+        const changeSign = portfolio.totalChange24h >= 0 ? "+" : "";
+        const changeColor = portfolio.totalChange24h >= 0 ? "🟢" : "🔴";
+        
+        // Top 5 Assets
+        const topAssets = portfolio.assets.slice(0, 5).map((a: any) => `${a.symbol} (${a.chain}) $${Math.round(a.usdValue)}`).join(", ");
+
+        balanceMsg = `💰 **Total Balance**: ${formattedUsd}\n` +
+                     `${changeColor} **24h Change**: ${changeSign}${portfolio.totalChange24h.toFixed(2)}%\n` +
+                     `🏆 **Top Assets**: ${topAssets || "No data"}\n` + 
+                     `⚠️ *Data collected via public RPCs (Native + Top Tokens).*\n\n`;
+    } else {
+        balanceMsg = "⚠️ Failed to fetch balance data via public APIs.\n\n";
+    }
+
+    return JSON.stringify({
+        message: "Portfolio analysis generated.",
+        address: address,
+        debank_link: debankLink,
+        action: `${balanceMsg}For a precise view of all networks and DeFi positions, please visit DeBank.`,
+        chain: chain || "Multi-Chain"
+    }, null, 2);
+  },
+  {
+    name: "analyze_portfolio",
+    description: "Get a detailed analysis of the user's portfolio. Fetches multi-chain balances (Native + ERC20) and provides DeBank link.",
+    schema: z.object({
+      chain: z.string().optional().describe("The blockchain network to analyze"),
+      address: z.string().optional().describe("The user's EVM wallet address (starts with 0x)"),
+    }),
+  }
+);
