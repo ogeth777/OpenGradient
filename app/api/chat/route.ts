@@ -57,6 +57,25 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  const res = NextResponse.json({ status: "TERMINAL AI ONLINE", version: "1.0.0" });
+  const res = NextResponse.json({ 
+    status: "TERMINAL AI ONLINE", 
+    version: "2.4.0",
+    name: "TERMINAL AI",
+    description: "Advanced Base Trading Terminal. Features: Trending Tokens, Yield Farming, Risk Analysis, Portfolio Tracking, and Top Gainers.",
+    capabilities: [
+        "Fetch trending tokens on Base network",
+        "Analyze token security and risk (GoPlus Security)",
+        "Find high-yield farming opportunities",
+        "Track portfolio balance and history (DeBank)",
+        "Monitor top gaining tokens"
+    ],
+    examples: [
+        "What are the trending tokens on Base?",
+        "Risk analysis for BRETT",
+        "Find best yield farming pools",
+        "Show me top gainers",
+        "Analyze my portfolio"
+    ]
+  });
   return setCorsHeaders(res);
 }
