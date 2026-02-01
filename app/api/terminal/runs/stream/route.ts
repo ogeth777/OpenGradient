@@ -20,7 +20,6 @@ export async function POST(req: Request) {
     console.log("[STREAM_DEBUG] Request Body:", JSON.stringify(body, null, 2));
 
     // Extract input
-    // LangGraph often sends input inside "input" object
     const inputPayload = body.input || body;
     const messages = inputPayload.messages || [];
     
@@ -53,14 +52,13 @@ export async function POST(req: Request) {
         const runId = crypto.randomUUID();
         const threadId = body.thread_id || crypto.randomUUID();
 
-        // 1. Metadata event
+        // Send MULTIPLE event types to satisfy different parsers
+
+        // 1. Metadata
         const metadata = { run_id: runId, thread_id: threadId };
         controller.enqueue(encoder.encode(`event: metadata\ndata: ${JSON.stringify(metadata)}\n\n`));
 
-        // 2. Messages event (Simulating a "chunk" of a message)
-        // LangGraph clients often look for 'messages/complete' or just updates to 'values'
-        
-        // We will send a 'values' event which updates the state
+        // 2. Values (LangGraph Standard)
         const valuesEvent = {
             messages: [
                 ...messages,
@@ -75,7 +73,17 @@ export async function POST(req: Request) {
         };
         controller.enqueue(encoder.encode(`event: values\ndata: ${JSON.stringify(valuesEvent)}\n\n`));
 
-        // 3. End event
+        // 3. Messages/Complete (Another common pattern)
+        const completeEvent = [
+            {
+                role: "assistant",
+                content: agentResponse,
+                type: "ai"
+            }
+        ];
+        controller.enqueue(encoder.encode(`event: messages/complete\ndata: ${JSON.stringify(completeEvent)}\n\n`));
+
+        // 4. End
         controller.enqueue(encoder.encode(`event: end\ndata: {}\n\n`));
         controller.close();
       }
