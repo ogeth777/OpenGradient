@@ -89,7 +89,7 @@ export async function processAgentRequest(userPrompt: string) {
            const words = userPrompt.split(" ");
            const token = words.find(w => w === w.toUpperCase() && w.length > 2 && w !== "RISK") || "BRETT";
            const chain = lowerPrompt.includes("solana") ? "solana" : "base";
-           const rawResult = await evaluateTokenRiskTool.invoke({ token, chain });
+           const rawResult = await evaluateTokenRiskTool.invoke({ token, chain }) as string;
            try {
              const data = JSON.parse(rawResult);
              if (data.risk_analysis) {
@@ -115,7 +115,7 @@ export async function processAgentRequest(userPrompt: string) {
                const input: any = { chain };
                if (address) input.address = address;
               
-               const rawResult = await analyzePortfolioTool.invoke(input);
+               const rawResult = await analyzePortfolioTool.invoke(input) as string;
                try {
                    const data = JSON.parse(rawResult);
                    if (data.debank_link) {
@@ -164,4 +164,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const prompt = process.argv[2] || "What are the trending tokens on Base?";
   processAgentRequest(prompt).then(console.log).catch(console.error);
 }
-
