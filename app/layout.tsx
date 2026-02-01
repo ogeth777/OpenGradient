@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "TERMINAL AI",
-  description: "Crypto terminal on Base: Risk analysis, Yields, Portfolio.",
+  description: "Base Trading Terminal: Risks, Yields, Portfolio Analysis.",
 };
 
 export default function RootLayout({
