@@ -738,8 +738,8 @@ export async function fetchMultiChainPortfolio(address: string) {
                  const addresses = tokens.map((t: any) => t.contractAddress).join(",");
                  
                  // Add explicit error handling for CoinGecko
-                 let tokenPrices = {};
-                 try {
+                let tokenPrices: Record<string, any> = {};
+                try {
                      const tokenPricesRes = await axios.get(`https://api.coingecko.com/api/v3/simple/token_price/base?contract_addresses=${addresses}&vs_currencies=usd&include_24hr_change=true`);
                      tokenPrices = tokenPricesRes.data;
                  } catch (cgError) {
