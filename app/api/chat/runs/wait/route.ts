@@ -42,7 +42,13 @@ export async function POST(req: Request) {
     console.log("Extracted prompt:", userPrompt);
 
     // Call the agent
-    const agentResponse = await processAgentRequest(userPrompt);
+    let agentResponse;
+    try {
+        agentResponse = await processAgentRequest(userPrompt);
+    } catch (agentError: any) {
+        console.error("Agent Error in /runs/wait:", agentError);
+        agentResponse = `**SYSTEM ERROR**\n\n${agentError.message || "Unknown error occurred."}`;
+    }
 
     // Construct a LangGraph-compatible response
     // Usually expects the final state or outputs
@@ -64,9 +70,16 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('API Error:', error);
+    // Return 200 with structured error to prevent Warden UI crash
     return NextResponse.json(
-      { error: 'Internal Server Error' },
-      { status: 500 }
+      { 
+          outputs: {
+              messages: [
+                  { role: "assistant", content: "**API GATEWAY ERROR**\n\nInternal processing failed.", type: "ai" }
+              ]
+          }
+      },
+      { status: 200 }
     );
   }
 }
