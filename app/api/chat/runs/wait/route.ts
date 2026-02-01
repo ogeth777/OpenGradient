@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
 import { processAgentRequest } from '@/warden-bot/agent';
 
-// Helper to set CORS headers
-function setCorsHeaders(res: NextResponse) {
-  res.headers.set('Access-Control-Allow-Origin', '*');
-  res.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
-  return res;
-}
+// For /api/chat/runs/wait, CORS is handled by next.config.ts
+// So we don't need manual CORS headers here to avoid duplication errors.
 
 export async function OPTIONS() {
-  const res = NextResponse.json({}, { status: 200 });
-  return setCorsHeaders(res);
+  return NextResponse.json({}, { status: 200 });
 }
 
 export async function POST(req: Request) {
@@ -55,15 +49,13 @@ export async function POST(req: Request) {
       }
     };
 
-    const res = NextResponse.json(responseBody);
-    return setCorsHeaders(res);
+    return NextResponse.json(responseBody);
 
   } catch (error) {
     console.error('API Error:', error);
-    const res = NextResponse.json(
+    return NextResponse.json(
       { error: 'Internal Server Error' },
       { status: 500 }
     );
-    return setCorsHeaders(res);
   }
 }
