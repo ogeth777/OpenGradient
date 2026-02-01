@@ -66,6 +66,7 @@ export async function resolveTokenAddress(token: string, chain: string = "base")
   
   const COMMON_BASE: Record<string, string> = {
         "WETH": "0x4200000000000000000000000000000000000006",
+        "ETH": "0x4200000000000000000000000000000000000006", // Treat ETH as WETH for swaps usually, or handle native separately
         "USDC": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         "USDT": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2",
         "DAI": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb",
@@ -75,6 +76,9 @@ export async function resolveTokenAddress(token: string, chain: string = "base")
         "MOG": "0x2Da56AcB9Ea78330f947bD57C54119Debda18528",
         "KEYCAT": "0x9a26F5433671751C328c4896f46046439141Aad5",
         "AERO": "0x940181a94a35a4569e4529a3cdfb74e38fd98631",
+        "HIGHER": "0x0578d8a44db98b23bf096a382e016e29a5ce0ffe",
+        "MIGGLES": "0xB1a03EdA103425296632831BCF5506e21eE8b931",
+        "SKI": "0x0000000000000000000000000000000000000000", // Placeholder if unknown, or remove if not sure
         "BSX": "0x1337000000000000000000000000000000000000"
       };
 
