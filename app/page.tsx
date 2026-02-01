@@ -128,7 +128,10 @@ export default function Home() {
     }
 
     // NEW: Check for JSON Swap Preview (Warden/Trae Standard)
-    const jsonMatch = cleanContent.match(/```json\s*(\{[\s\S]*?\})\s*```/) || cleanContent.match(/(\{[\s\S]*?"type"\s*:\s*"swap_preview"[\s\S]*?\})/);
+    // Robust Regex: Matches JSON block either standalone or inside markdown code blocks (with or without 'json' tag)
+    // Capture group 1: The JSON object itself
+    const jsonMatch = cleanContent.match(/```[a-z]*\s*(\{[\s\S]*?"type"\s*:\s*"swap_preview"[\s\S]*?\})\s*```/i) || 
+                      cleanContent.match(/(\{[\s\S]*?"type"\s*:\s*"swap_preview"[\s\S]*?\})/);
     let swapTxData = null;
 
     if (jsonMatch) {
@@ -144,7 +147,7 @@ export default function Home() {
                     amountAtomic: parsed.amountAtomic || "0",
                     chain: parsed.chain || "base"
                 };
-                // Remove the JSON block from the displayed text
+                // Remove the JSON block from the displayed text (matches the whole code block if present)
                 cleanContent = cleanContent.replace(jsonMatch[0], "").trim();
             }
         } catch (e) {

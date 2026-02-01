@@ -702,7 +702,7 @@ export const terminal_swap = tool(
         };
 
         return `Setting up efficient swap of ${amount} ${tokenIn.toUpperCase()} for ${tokenOut.toUpperCase()}... Optimal routing!
-        
+
 \`\`\`json
 ${JSON.stringify(previewData, null, 2)}
 \`\`\``;
