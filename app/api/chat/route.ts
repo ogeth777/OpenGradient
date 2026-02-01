@@ -17,8 +17,19 @@ export async function OPTIONS() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // Warden might send 'prompt' or 'input' or 'message'. Let's handle a few cases.
-    const prompt = body.prompt || body.input || body.message || (typeof body === 'string' ? body : JSON.stringify(body));
+    let prompt = body.prompt || body.input || body.message;
+
+    // Handle LangGraph structure: { input: { messages: [...] } }
+    if (typeof prompt === 'object' && prompt !== null && !Array.isArray(prompt)) {
+        if (prompt.messages && Array.isArray(prompt.messages)) {
+            const lastMsg = prompt.messages[prompt.messages.length - 1];
+            prompt = lastMsg?.content || JSON.stringify(prompt);
+        } else {
+            prompt = JSON.stringify(prompt);
+        }
+    } else if (typeof prompt !== 'string') {
+        prompt = JSON.stringify(body);
+    }
     
     console.log("Received prompt:", prompt);
     
