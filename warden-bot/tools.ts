@@ -646,10 +646,10 @@ export const terminal_swap = tool(
 
       // 3. Get Route
       console.log("Fetching KyberSwap route...");
-      const routeUrl = `https://aggregator-api.kyberswap.com/base/api/v1/routes?tokenIn=${tokenInAddr}&tokenOut=${tokenOutAddr}&amountIn=${amountAtomic}`;
-      const routeRes = await axios.get(routeUrl, { timeout: 5000 });
-      
-      if (!routeRes.data || routeRes.data.code !== 0) {
+              const routeUrl = `https://aggregator-api.kyberswap.com/base/api/v1/routes?tokenIn=${tokenInAddr}&tokenOut=${tokenOutAddr}&amountIn=${amountAtomic}`;
+              const routeRes = await axios.get(routeUrl, { timeout: 15000 });
+              
+              if (!routeRes.data || routeRes.data.code !== 0) {
           return `No swap route found: ${routeRes.data?.message || "Liquidity insufficient or pair not supported."}`;
       }
 
