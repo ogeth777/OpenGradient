@@ -162,7 +162,32 @@ No structured output — Warden UI will not trigger from text, so we use this te
         else if (lowerPrompt.includes("swap") || lowerPrompt.includes("buy") || lowerPrompt.includes("sell") || lowerPrompt === "approve") {
            // Swap Fallback (Stateless/One-Shot)
            if (lowerPrompt === "approve") {
-               return `Swap Executed Successfully! (Simulated)\n- Sold: 0.001 ETH\n- Bought: ~2.3 USDC\n- Status: Confirmed on-chain\n- Hash: 0x${Math.random().toString(16).substr(2, 64)}`;
+               // Try to recover swap details from history
+               const lastAssistantMsg = [...history].reverse().find(m => m.role === 'assistant' || m.role === 'ai');
+               if (lastAssistantMsg) {
+                   const content = lastAssistantMsg.content;
+                   // Parse: Selling: 0.001 ETH ... Receiving: ~2.3 USDC
+                   const sellMatch = content.match(/Selling:\s*(\d+\.?\d*)\s*([a-zA-Z0-9]+)/i);
+                   const buyMatch = content.match(/Receiving:\s*~?([\d\.]+)\s*([a-zA-Z0-9]+)/i);
+
+                   if (sellMatch && buyMatch) {
+                       const amount = sellMatch[1];
+                       const tokenIn = sellMatch[2];
+                       const tokenOut = buyMatch[2]; // Group 2 is token symbol
+
+                       try {
+                           return await execute_swap.invoke({
+                               tokenIn,
+                               tokenOut,
+                               amount,
+                               chain: "base"
+                           });
+                       } catch (e: any) {
+                           return `Error executing swap: ${e.message}`;
+                       }
+                   }
+               }
+               return "I couldn't find a pending swap quote to approve in our recent history. Please request the swap again (e.g., 'Swap 0.001 ETH for USDC').";
            }
 
            // Regex for: "Swap 0.001 ETH for USDC"
@@ -177,7 +202,7 @@ No structured output — Warden UI will not trigger from text, so we use this te
                        chain: "base" 
                    });
                    // Return the quote text + Explicit Instruction for next step
-                   return quote + "\n\n(System Note: Text-based approval flow active. Reply 'APPROVE' to simulate execution.)";
+                   return quote + "\n\n(System Note: Reply 'APPROVE' to execute transaction on-chain.)";
                } catch (e: any) {
                    return `Error fetching quote: ${e.message}`;
                }
