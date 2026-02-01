@@ -768,7 +768,7 @@ export const terminal_balance = tool(
 
         const isNative = tokenAddr === NATIVE_ETH || tokenAddr === "0x4200000000000000000000000000000000000006" && token.toUpperCase() === "ETH"; // Handle WETH/ETH ambiguity if needed, but usually ETH is native
         
-        let balance = 0n;
+        let balance = BigInt(0);
         let decimals = 18;
 
         if (token.toUpperCase() === "ETH") { // Explicitly handle ETH as native
