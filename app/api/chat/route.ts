@@ -23,19 +23,9 @@ export async function POST(req: Request) {
     if (typeof prompt === 'object' && prompt !== null && !Array.isArray(prompt)) {
         if (prompt.messages && Array.isArray(prompt.messages)) {
             // It looks like a LangGraph/Warden request
+            // We do NOT block /api/chat even if key is missing, because the frontend uses it.
+            // But we can log if it's external.
             
-            // SECURITY CHECK for Warden requests
-            // Only if we are fairly sure this is Warden (has 'messages' structure)
-            const envKey = process.env.WARDEN_API_KEY;
-            if (envKey) {
-                const headerKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
-                if (headerKey !== envKey) {
-                     console.log("Blocked unauthorized request to /api/chat");
-                     const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-                     return setCorsHeaders(res);
-                }
-            }
-
             const lastMsg = prompt.messages[prompt.messages.length - 1];
             prompt = lastMsg?.content || JSON.stringify(prompt);
         } else {
