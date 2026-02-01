@@ -13,10 +13,14 @@ import {
   Globe,
   Zap,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
+  Wallet
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { injected } from "wagmi/connectors";
+import { SwapHandler } from "../components/SwapHandler";
 
 export default function Home() {
   const [messages, setMessages] = useState<{ role: 'user' | 'agent'; content: string }[]>([
@@ -28,6 +32,11 @@ export default function Home() {
   const [marketData, setMarketData] = useState<{ trending: any[], yields: any[] }>({ trending: [], yields: [] });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
+  // Wallet Hooks
+  const { address, isConnected } = useAccount();
+  const { connect } = useConnect();
+  const { disconnect } = useDisconnect();
+
   // Hardcoded API URL for display
   const AGENT_API_URL = "https://terminalai-omega.vercel.app/api/terminal";
 
@@ -118,7 +127,23 @@ export default function Home() {
       }
     }
 
-    // Check for <SWAP_WIDGET> tag
+    // Check for <SWAP_TX> tag (New Native Swap)
+    const swapTxMatch = cleanContent.match(/<SWAP_TX\s+tokenIn="([^"]+)"\s+tokenOut="([^"]+)"\s+amount="([^"]+)"\s+tokenInAddr="([^"]+)"\s+tokenOutAddr="([^"]+)"\s+amountAtomic="([^"]+)"\s+chain="([^"]+)"\s*\/>/);
+    let swapTxData = null;
+    if (swapTxMatch) {
+        swapTxData = {
+            tokenIn: swapTxMatch[1],
+            tokenOut: swapTxMatch[2],
+            amount: swapTxMatch[3],
+            tokenInAddr: swapTxMatch[4],
+            tokenOutAddr: swapTxMatch[5],
+            amountAtomic: swapTxMatch[6],
+            chain: swapTxMatch[7]
+        };
+        cleanContent = cleanContent.replace(swapTxMatch[0], "").trim();
+    }
+
+    // Check for <SWAP_WIDGET> tag (Legacy/External Link)
     const swapWidgetMatch = cleanContent.match(/<SWAP_WIDGET\s+tokenIn="([^"]+)"\s+tokenOut="([^"]+)"\s+amount="([^"]+)"\s+chain="([^"]+)"\s+link="([^"]+)"\s*\/>/);
     let swapData = null;
 
@@ -142,8 +167,6 @@ export default function Home() {
               <a {...props} target="_blank" rel="noopener noreferrer" className="text-green-400 hover:text-green-300 underline underline-offset-4 decoration-green-500/50 hover:decoration-green-400 transition-all cursor-pointer font-bold" />
             ),
             p: ({node, ...props}) => {
-                // Check if p contains a contract address pattern (0x...) or solana address
-                // We'll traverse children to find text nodes with addresses
                 return <p {...props} className="mb-2 last:mb-0 whitespace-pre-wrap" />
             },
             ul: ({node, ...props}) => <ul {...props} className="list-disc list-inside mb-2" />,
@@ -165,18 +188,14 @@ export default function Home() {
                 }
                 return <code {...props} className="bg-green-900/30 px-1 rounded text-green-300 font-mono text-sm">{children}</code>
             },
-            // Use text renderer to intercept addresses? 
-            // Better: use regex replacement in the content string before passing to ReactMarkdown?
-            // No, that breaks other markdown.
-            // Let's use a custom component for text nodes? No, ReactMarkdown doesn't support that easily.
-            // Alternative: Pre-process the content to wrap addresses in backticks or a custom link?
-            // If we wrap in `code`, we can style it.
-            // Let's try to detect address in the text content prop of 'p' or 'li' is hard.
           }}
         >
           {cleanContent.replace(/(0x[a-fA-F0-9]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})/g, '`$1`')}
         </ReactMarkdown>
 
+        {swapTxData && (
+            <SwapHandler {...swapTxData} />
+        )}
 
         {cardsData && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
@@ -211,10 +230,6 @@ export default function Home() {
                   </div>
                 </div>
                 
-                {/* <div className="flex items-center justify-between text-xs text-green-700 font-mono mt-2 pt-2 border-t border-green-900/30">
-                   <div>MCap: ${token.market_cap?.toLocaleString()}</div>
-                </div> */}
-
                 <div className="flex gap-2 mt-4">
                     <a 
                       href={token.trade_url || token.link} 
@@ -277,7 +292,28 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="flex gap-6 text-xs uppercase tracking-widest items-center">
+        <div className="flex gap-4 text-xs uppercase tracking-widest items-center">
+            {/* Wallet Connect Button */}
+            {!isConnected ? (
+                <button 
+                    onClick={() => connect({ connector: injected() })}
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-500 text-black font-bold px-4 py-2 rounded transition-all"
+                >
+                    <Wallet className="w-3 h-3" /> Connect Wallet
+                </button>
+            ) : (
+                <button 
+                    onClick={() => disconnect()}
+                    className="flex items-center gap-2 border border-green-500/50 text-green-400 hover:bg-green-500/10 px-4 py-2 rounded transition-all"
+                    title={address}
+                >
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    {address?.slice(0, 6)}...{address?.slice(-4)}
+                </button>
+            )}
+
+          <div className="w-px h-6 bg-green-900/50 mx-2" />
+          
           <button 
             onClick={handleReset}
             className="flex items-center gap-2 text-red-400 hover:text-red-300 border border-red-900/30 hover:border-red-500/50 bg-red-950/10 px-3 py-1 rounded transition-all group"
@@ -286,25 +322,11 @@ export default function Home() {
             <RefreshCw className="w-3 h-3 group-hover:rotate-180 transition-transform duration-500" />
             NEW CHAT
           </button>
-          <div className="w-px h-6 bg-green-900/50 mx-2" />
-          <div className="flex items-center gap-2 text-green-400">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            System Online
-          </div>
-          <div className="flex items-center gap-2 text-blue-400">
-            <Globe className="w-3 h-3" />
-            Base: Active
-          </div>
         </div>
       </header>
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        
-        {/* Sidebar (Widgets) - REMOVED per user request */}
-        {/* <aside className="w-80 border-r border-green-900/30 bg-[#080808]/50 p-4 hidden md:flex flex-col gap-6">
-           ...
-        </aside> */}
         
         {/* Chat Interface */}
         <section className="flex-1 flex flex-col relative">

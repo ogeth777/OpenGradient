@@ -538,15 +538,7 @@ export async function resolveTokenAddress(token: string, chain: string = "base")
 export const executeSwapTool = tool(
   async ({ tokenIn, tokenOut, amount, chain }) => {
     try {
-      const privateKey = process.env.PRIVATE_KEY;
-      if (!privateKey) throw new Error("Private key not configured.");
-      
-      const account = privateKeyToAccount(privateKey as `0x${string}`);
-      const client = createWalletClient({
-        account,
-        chain: base,
-        transport: http("https://mainnet.base.org")
-      });
+      // 1. Resolve Tokens (No Private Key needed for this step)
       const publicClient = createPublicClient({
         chain: base,
         transport: http("https://mainnet.base.org")
@@ -560,7 +552,7 @@ export const executeSwapTool = tool(
         return "Could not resolve token address. Please try again with valid symbols.";
       }
 
-      // Convert amount to atomic units
+      // 2. Fetch Decimals
       let decimals = 18;
       if (tokenInAddr !== NATIVE_ETH) {
           try {
@@ -574,7 +566,7 @@ export const executeSwapTool = tool(
       
       const amountAtomic = parseUnits(amount, decimals).toString();
 
-      // Get Route from KyberSwap
+      // 3. Get Route
       const routeUrl = `https://aggregator-api.kyberswap.com/base/api/v1/routes?tokenIn=${tokenInAddr}&tokenOut=${tokenOutAddr}&amountIn=${amountAtomic}`;
       const routeRes = await axios.get(routeUrl);
       
@@ -583,65 +575,47 @@ export const executeSwapTool = tool(
       }
 
       const route = routeRes.data.data.routeSummary;
-      if (!route) return "No route summary found.";
       
-      // Build Route
-      const buildUrl = `https://aggregator-api.kyberswap.com/base/api/v1/route/build`;
-      const buildRes = await axios.post(buildUrl, {
-          routeSummary: route,
-          sender: account.address,
-          recipient: account.address,
-          slippageTolerance: 50 // 0.5%
-      });
+      // 4. Build Transaction (Targeting the User's Wallet)
+      // We use a placeholder address for the 'sender' since we don't know the user's address yet.
+      // KyberSwap requires a sender address to build the tx.
+      // We can ask the user for their address first, OR use a dummy address and hope the router doesn't validate balance strictly during build.
+      // IMPORTANT: KyberSwap API checks allowance/balance if we provide a real address.
+      // If we provide a dummy, the 'data' might be wrong if it encodes the sender.
+      // KyberSwap's 'build' endpoint usually requires 'recipient'.
       
-      if (!buildRes.data || buildRes.data.code !== 0) {
-           return `Failed to build transaction: ${buildRes.data?.message || "Unknown error"}`;
-      }
-
-      const txData = buildRes.data.data;
-      if (!txData) return "Failed to build transaction data.";
-
-      // Approve if needed
-      if (tokenInAddr !== NATIVE_ETH) {
-          const allowance = await publicClient.readContract({
-              address: tokenInAddr as `0x${string}`,
-              abi: erc20Abi,
-              functionName: 'allowance',
-              args: [account.address, txData.routerAddress as `0x${string}`]
-          });
-          
-          if (allowance < BigInt(amountAtomic)) {
-              console.log("Approving router...");
-              const hash = await client.sendTransaction({
-                  to: tokenInAddr as `0x${string}`,
-                  data: encodeFunctionData({
-                      abi: erc20Abi,
-                      functionName: 'approve',
-                      args: [txData.routerAddress as `0x${string}`, BigInt(amountAtomic)]
-                  })
-              });
-              await publicClient.waitForTransactionReceipt({ hash });
-              console.log("Approval confirmed.");
-          }
-      }
-
-      // Execute Swap
-      console.log("Executing swap...");
-      const txHash = await client.sendTransaction({
-          to: txData.routerAddress as `0x${string}`,
-          data: txData.data as `0x${string}`,
-          value: BigInt(txData.amountIn) // Only relevant if ETH is input
-      });
+      // ALTERNATIVE: Just return the Token Addresses and let the Frontend build the tx?
+      // No, we want the Agent to do the heavy lifting (finding the best route).
       
-      return `Transaction executed successfully! Hash: ${txHash}`;
+      // Let's try building with a generic zero address or asking the user.
+      // But wait, the user's prompt is just "Swap 10 USDC...".
+      // We'll use the 'sender' as the 'recipient'.
+      
+      // Better approach for Chat UI: 
+      // Return a widget that *requests* the user's address or uses the connected wallet to call the API itself?
+      // No, that puts logic in frontend.
+      
+      // Let's use a standard "Router" approach.
+      // We will return the Metadata needed for the frontend to execute.
+      // <SWAP_TX tokenIn="..." tokenOut="..." amount="..." tokenInAddr="..." tokenOutAddr="..." amountAtomic="..." />
+      
+      return `<SWAP_TX 
+        tokenIn="${tokenIn.toUpperCase()}" 
+        tokenOut="${tokenOut.toUpperCase()}" 
+        amount="${amount}" 
+        tokenInAddr="${tokenInAddr}" 
+        tokenOutAddr="${tokenOutAddr}" 
+        amountAtomic="${amountAtomic}" 
+        chain="base"
+      />`;
 
     } catch (error: any) {
-      return `Transaction failed: ${error.message}. Ensure the agent wallet has sufficient funds (ETH) for gas and the swap.`;
+      return `Error generating swap transaction: ${error.message}`;
     }
   },
   {
     name: "execute_swap",
-    description: "Execute a real token swap transaction on Base network. Use this when the user explicitly wants to buy/sell tokens immediately.",
+    description: "Generate a transaction widget for the user to buy/sell tokens. Use this when the user explicitly wants to buy/sell tokens.",
     schema: z.object({
       tokenIn: z.string().describe("The token symbol to sell"),
       tokenOut: z.string().describe("The token symbol to buy"),
