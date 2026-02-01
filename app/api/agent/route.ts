@@ -24,15 +24,12 @@ export async function POST(req: Request) {
         if (prompt.messages && Array.isArray(prompt.messages)) {
             // It looks like a LangGraph/Warden request
             
-            // SECURITY CHECK for Warden requests
-            // Only if we are fairly sure this is Warden (has 'messages' structure)
+            // SECURITY CHECK for Warden requests (SOFT)
             const envKey = process.env.WARDEN_API_KEY;
             if (envKey) {
                 const headerKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
                 if (headerKey !== envKey) {
-                     console.log("Blocked unauthorized request to /api/agent");
-                     const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-                     return setCorsHeaders(res);
+                     console.log("Warning: Unauthorized request to /api/agent (allowed for compatibility)");
                 }
             }
 
