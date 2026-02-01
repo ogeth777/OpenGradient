@@ -85,7 +85,7 @@ _System ready. Awaiting input..._`;
               `${t.name} ${t.address} ($${t.symbol}): Price $${t.current_price}`
            ).join("\n\n");
 
-           return `Here are the top gainers in the last 24h${chain ? ` on ${chain}` : ''}:\n\n${textList}\n\n<TOKEN_CARDS>${JSON.stringify(rawResult.tokens)}</TOKEN_CARDS>`;
+           return `Here are the top gainers in the last 24h${chain ? ` on ${chain}` : ''}:\n\n${textList}`;
         }
         else if (lowerPrompt.includes("yield") || lowerPrompt.includes("farming") || lowerPrompt.includes("apy")) {
            const chain = lowerPrompt.includes("solana") ? "solana" : "base";
@@ -111,7 +111,7 @@ _System ready. Awaiting input..._`;
               `${t.name} ${t.address} ($${t.symbol}): Price $${t.current_price}`
            ).join("\n\n");
 
-           return `Here are the trending tokens on ${chain} right now:\n\n${textList}\n\n<TOKEN_CARDS>${JSON.stringify(rawResult.tokens)}</TOKEN_CARDS>`;
+           return `Here are the trending tokens on ${chain} right now:\n\n${textList}`;
         }
         else if (lowerPrompt.includes("risk") || lowerPrompt.includes("audit") || lowerPrompt.includes("safe") || lowerPrompt.includes("security")) {
            const words = userPrompt.split(" ");
