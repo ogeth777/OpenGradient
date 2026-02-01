@@ -13,6 +13,17 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log("Received /runs/wait request (fallback):", JSON.stringify(body, null, 2));
 
+    // SECURITY CHECK
+    // If WARDEN_API_KEY is set in environment, we require it in headers
+    const envKey = process.env.WARDEN_API_KEY;
+    if (envKey) {
+        const headerKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
+        if (headerKey !== envKey) {
+             console.log("Blocked unauthorized request to /runs/wait (fallback)");
+             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+    }
+
     // Extract the last user message from the input
     // LangGraph input structure: { input: { messages: [ ... ] } }
     const messages = body.input?.messages || [];

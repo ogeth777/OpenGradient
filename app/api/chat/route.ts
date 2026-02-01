@@ -5,7 +5,7 @@ import { processAgentRequest } from '@/warden-bot/agent';
 function setCorsHeaders(res: NextResponse) {
   res.headers.set('Access-Control-Allow-Origin', '*');
   res.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-api-key');
   return res;
 }
 
@@ -22,6 +22,20 @@ export async function POST(req: Request) {
     // Handle LangGraph structure: { input: { messages: [...] } }
     if (typeof prompt === 'object' && prompt !== null && !Array.isArray(prompt)) {
         if (prompt.messages && Array.isArray(prompt.messages)) {
+            // It looks like a LangGraph/Warden request
+            
+            // SECURITY CHECK for Warden requests
+            // Only if we are fairly sure this is Warden (has 'messages' structure)
+            const envKey = process.env.WARDEN_API_KEY;
+            if (envKey) {
+                const headerKey = req.headers.get('x-api-key') || req.headers.get('authorization')?.replace('Bearer ', '');
+                if (headerKey !== envKey) {
+                     console.log("Blocked unauthorized request to /api/chat");
+                     const res = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+                     return setCorsHeaders(res);
+                }
+            }
+
             const lastMsg = prompt.messages[prompt.messages.length - 1];
             prompt = lastMsg?.content || JSON.stringify(prompt);
         } else {
