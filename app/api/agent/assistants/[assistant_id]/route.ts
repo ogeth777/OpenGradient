@@ -12,8 +12,8 @@ export async function OPTIONS() {
   return setCorsHeaders(res);
 }
 
-export async function GET(req: Request, { params }: { params: { assistant_id: string } }) {
-  const { assistant_id } = params;
+export async function GET(req: Request, { params }: { params: Promise<{ assistant_id: string }> }) {
+  const { assistant_id } = await params;
   
   const assistant = {
       assistant_id: assistant_id || "terminal-ai",
