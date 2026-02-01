@@ -127,48 +127,74 @@ export default function Home() {
       }
     }
 
-    // Robust SWAP_TX Extraction
-    // 1. Cleanup: Remove markdown code blocks wrapping the tag to prevent regex failure
-    if (cleanContent.includes("<SWAP_TX") && cleanContent.includes("```")) {
-         cleanContent = cleanContent.replace(/```[a-z]*\s*(<SWAP_TX[\s\S]*?>)\s*```/gi, '$1');
-    }
-
-    // 2. Extraction: Capture the tag and attributes string
-    const swapTxMatch = cleanContent.match(/<SWAP_TX([\s\S]*?)\/?>/i);
+    // NEW: Check for JSON Swap Preview (Warden/Trae Standard)
+    const jsonMatch = cleanContent.match(/```json\s*(\{[\s\S]*?\})\s*```/) || cleanContent.match(/(\{[\s\S]*?"type"\s*:\s*"swap_preview"[\s\S]*?\})/);
     let swapTxData = null;
 
-    if (swapTxMatch) {
-        // ALWAYS remove the tag from the displayed text so it doesn't duplicate or show raw code
-        cleanContent = cleanContent.replace(swapTxMatch[0], "").trim();
+    if (jsonMatch) {
+        try {
+            const parsed = JSON.parse(jsonMatch[1]);
+            if (parsed.type === 'swap_preview') {
+                swapTxData = {
+                    tokenIn: parsed.tokenIn,
+                    tokenOut: parsed.tokenOut,
+                    amount: parsed.amount,
+                    tokenInAddr: parsed.tokenInAddr,
+                    tokenOutAddr: parsed.tokenOutAddr,
+                    amountAtomic: parsed.amountAtomic || "0",
+                    chain: parsed.chain || "base"
+                };
+                // Remove the JSON block from the displayed text
+                cleanContent = cleanContent.replace(jsonMatch[0], "").trim();
+            }
+        } catch (e) {
+            console.error("Failed to parse swap preview JSON", e);
+        }
+    }
 
-        const attrs = swapTxMatch[1];
-        
-        // Helper to extract attribute values (supports " and ', and spaces)
-        const getAttr = (name: string) => {
-            const match = attrs.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i')) || 
-                          attrs.match(new RegExp(`${name}\\s*=\\s*'([^']*)'`, 'i'));
-            return match ? match[1] : null;
-        };
+    // Fallback: Robust SWAP_TX Extraction (Legacy)
+    if (!swapTxData) {
+        // 1. Cleanup: Remove markdown code blocks wrapping the tag to prevent regex failure
+        if (cleanContent.includes("<SWAP_TX") && cleanContent.includes("```")) {
+             cleanContent = cleanContent.replace(/```[a-z]*\s*(<SWAP_TX[\s\S]*?>)\s*```/gi, '$1');
+        }
 
-        const tokenIn = getAttr('tokenIn');
-        const tokenOut = getAttr('tokenOut');
-        const amount = getAttr('amount');
-        const tokenInAddr = getAttr('tokenInAddr');
-        const tokenOutAddr = getAttr('tokenOutAddr');
-        const amountAtomic = getAttr('amountAtomic');
-        const chain = getAttr('chain');
+        // 2. Extraction: Capture the tag and attributes string
+        const swapTxMatch = cleanContent.match(/<SWAP_TX([\s\S]*?)\/?>/i);
 
-        // Verify we have minimal required data
-        if (tokenIn && tokenOut && amount && tokenInAddr && tokenOutAddr) {
-            swapTxData = {
-                tokenIn,
-                tokenOut,
-                amount,
-                tokenInAddr,
-                tokenOutAddr,
-                amountAtomic: amountAtomic || "0",
-                chain: chain || "base"
+        if (swapTxMatch) {
+            // ALWAYS remove the tag from the displayed text
+            cleanContent = cleanContent.replace(swapTxMatch[0], "").trim();
+    
+            const attrs = swapTxMatch[1];
+            
+            // Helper to extract attribute values
+            const getAttr = (name: string) => {
+                const match = attrs.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i')) || 
+                              attrs.match(new RegExp(`${name}\\s*=\\s*'([^']*)'`, 'i'));
+                return match ? match[1] : null;
             };
+    
+            const tokenIn = getAttr('tokenIn');
+            const tokenOut = getAttr('tokenOut');
+            const amount = getAttr('amount');
+            const tokenInAddr = getAttr('tokenInAddr');
+            const tokenOutAddr = getAttr('tokenOutAddr');
+            const amountAtomic = getAttr('amountAtomic');
+            const chain = getAttr('chain');
+    
+            // Verify we have minimal required data
+            if (tokenIn && tokenOut && amount && tokenInAddr && tokenOutAddr) {
+                swapTxData = {
+                    tokenIn,
+                    tokenOut,
+                    amount,
+                    tokenInAddr,
+                    tokenOutAddr,
+                    amountAtomic: amountAtomic || "0",
+                    chain: chain || "base"
+                };
+            }
         }
     }
 
