@@ -8,9 +8,16 @@ export async function processAgentRequest(userPrompt: string) {
       return "Let's get the ball rolling. Which token on Base are you looking at? I need the token's name or symbol to fetch its metadata.";
   }
 
+  const lowerPrompt = userPrompt.toLowerCase().trim();
+
+  // 0.0.1 Interactive Swap/Buy Flow
+  if (lowerPrompt === "swap" || lowerPrompt === "buy" || lowerPrompt === "trade") {
+      return "To perform a swap, please specify what you want to trade.\n\n**Examples:**\n- \"Swap 10 USDC for ETH\"\n- \"Buy BRETT with 0.01 ETH\"\n- \"Swap 50 AERO for USDC\"\n\n_Tell me the amount and the tokens you want to swap._";
+  }
+
   // 0.1 Greeting / Menu Interception
   const greetings = ["hello", "hi", "hey", "start", "menu", "help", "commands"];
-  if (greetings.includes(userPrompt.toLowerCase().trim())) {
+  if (greetings.includes(lowerPrompt)) {
       return `**TERMINAL AI v1.0 ONLINE.**
 AVAILABLE PROTOCOLS:
 
@@ -29,7 +36,7 @@ AVAILABLE PROTOCOLS:
 > **Analyze Portfolio**
   *Check your wallet balance*
 
-> **Swap Tokens**
+> **Swap / Buy Tokens**
   *e.g. "Swap 10 USDC for BRETT"*
 
 _System ready. Awaiting input..._`;
