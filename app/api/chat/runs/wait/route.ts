@@ -51,15 +51,27 @@ export async function POST(req: Request) {
     }
 
     // Construct a LangGraph-compatible response
-    // Usually expects the final state or outputs
+    // Must look like a completed Run object
+    const runId = crypto.randomUUID();
+    const threadId = body.thread_id || crypto.randomUUID();
+    const assistantId = body.assistant_id || "terminal-ai";
+    const now = new Date().toISOString();
+
     const responseBody = {
+      run_id: runId,
+      thread_id: threadId,
+      assistant_id: assistantId,
+      status: "success",
+      metadata: {},
+      created_at: now,
+      updated_at: now,
       outputs: {
         messages: [
           ...messages,
           {
             role: "assistant",
             content: agentResponse,
-            id: crypto.randomUUID(), // Mock ID
+            id: crypto.randomUUID(),
             type: "ai"
           }
         ]
