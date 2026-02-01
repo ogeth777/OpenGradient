@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { getTrendingTokensTool, getYieldOpportunitiesTool, evaluateTokenRiskTool, analyzePortfolioTool, getTopGainersTool, getTradeQuoteTool, fetchTopGainers, fetchTrendingTokens } from "./tools";
+import { getTrendingTokensTool, getYieldOpportunitiesTool, evaluateTokenRiskTool, analyzePortfolioTool, getTopGainersTool, getTradeQuoteTool, executeSwapTool, fetchTopGainers, fetchTrendingTokens } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string) {
