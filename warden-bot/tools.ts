@@ -7,6 +7,14 @@ import { base } from "viem/chains";
 
 // --- Standalone Data Fetching Functions ---
 
+// Hardcoded Decimals for Stability (Global Scope)
+const TOKEN_DECIMALS: Record<string, number> = {
+    "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": 6, // USDC
+    "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2": 6, // USDT
+    "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb": 18, // DAI
+    "0x4200000000000000000000000000000000000006": 18, // WETH
+};
+
 // --- In-Memory Cache ---
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 Minutes Cache
 const cache: Record<string, { timestamp: number, data: any }> = {};
@@ -70,15 +78,7 @@ export async function resolveTokenAddress(token: string, chain: string = "base")
         "BSX": "0x1337000000000000000000000000000000000000"
       };
 
-      // Hardcoded Decimals for Stability
-      const TOKEN_DECIMALS: Record<string, number> = {
-          "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913": 6, // USDC
-          "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2": 6, // USDT
-          "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb": 18, // DAI
-          "0x4200000000000000000000000000000000000006": 18, // WETH
-      };
-
-  if (chain.toLowerCase() === "base" && COMMON_BASE[t]) return COMMON_BASE[t];
+      if (chain.toLowerCase() === "base" && COMMON_BASE[t]) return COMMON_BASE[t];
 
   // 1. Try DexScreener Search (Faster & More tokens)
   try {
