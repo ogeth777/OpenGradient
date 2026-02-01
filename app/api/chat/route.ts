@@ -19,13 +19,13 @@ export async function POST(req: Request) {
     const body = await req.json();
     let prompt = body.prompt || body.input || body.message;
     const userAddress = body.address;
+    let history: any[] = [];
 
     // Handle LangGraph structure: { input: { messages: [...] } }
     if (typeof prompt === 'object' && prompt !== null && !Array.isArray(prompt)) {
         if (prompt.messages && Array.isArray(prompt.messages)) {
-            // It looks like a LangGraph/Warden request
-            // We do NOT block /api/chat even if key is missing, because the frontend uses it.
-            // But we can log if it's external.
+            // Extract history
+            history = prompt.messages;
             
             const lastMsg = prompt.messages[prompt.messages.length - 1];
             prompt = lastMsg?.content || JSON.stringify(prompt);
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     let response;
     try {
-        response = await processAgentRequest(prompt, userAddress);
+        response = await processAgentRequest(prompt, userAddress, history);
     } catch (agentError: any) {
         console.error("Uncaught Agent Error:", agentError);
         response = `**FATAL ERROR**\n\n${agentError.message || "Unknown system failure."}`;
