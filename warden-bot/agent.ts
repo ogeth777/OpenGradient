@@ -26,12 +26,6 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Wallet**: Check Agent's internal trading wallet
 - **Portfolio [address]**: Detailed net worth analysis
 
-**🔄 SMART TRADING**
-- **Swap [amount] [token] for [token]**:
-  - Get optimal route & quote
-  - **NEW**: Generates direct Uniswap Link for you
-  - *Agent Trading*: Executed if Agent has funds
-
 *Type a command to proceed.*`;
           }
 
@@ -72,6 +66,14 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
               content: `You are a Trae-built Warden Custom Swap Agent for Base chain swaps via Uniswap API.
 NEVER output JSON, XML, <SWAP_TX>, structured tags or raw data in chat messages. Always respond in plain, friendly text.
 
+**CRITICAL: DISPLAYING LINKS**
+When tools return data with links (e.g., 'link', 'trade_url', 'security_url'), you MUST include them in your response.
+- Use Markdown format: [Link Text](url)
+- For Tokens: Include [Chart/View](link) and [Trade](trade_url) if available.
+- For Pools: Include [Open Pool](link).
+- For Risk: Include [View on CoinGecko](link).
+- NEVER strip these links. They are essential for the user.
+
 IMPORTANT: You are an "Autonomous Agent" with your own internal wallet.
 - You CANNOT access the user's wallet (MetaMask) directly due to platform security.
 - You CAN only trade funds that are in your own internal wallet.
@@ -89,7 +91,7 @@ When user asks for swap:
     Gas: ~$0.XX
     Rate: 1 [tokenIn] ≈ [rate] [tokenOut]
     Chain: Base
-
+    
     Do you want to proceed? Reply APPROVE to confirm or REJECT to cancel."
 
 6. If user says APPROVE:
@@ -186,6 +188,28 @@ No structured output — Warden UI will not trigger from text, so we use this te
              return rawResult;
            } catch { return rawResult; }
         }
+        else if (lowerPrompt.includes("balance")) {
+             // Fallback for Balance
+             const words = lowerPrompt.split(" ");
+             // Try to find address (0x...)
+             const addressMatch = userPrompt.match(/0x[a-fA-F0-9]{40}/);
+             const address = addressMatch ? addressMatch[0] : undefined;
+             
+             // Try to find token symbol (e.g. ETH, USDC) - heuristic: 3-5 uppercase letters, or words that are not 'balance'
+             // This is tricky in fallback. Default to ETH if only address provided.
+             let token = "ETH";
+             const potentialTokens = words.filter(w => w !== "balance" && !w.startsWith("0x") && w.length < 6);
+             if (potentialTokens.length > 0) token = potentialTokens[0].toUpperCase();
+
+             if (!address) return "To check balance, please provide a wallet address. Usage: 'Balance [address] [optional: token]'";
+
+             try {
+                 const balance = await terminal_balance.invoke({ token, address });
+                 return `**Balance Query**\nAddress: ${address}\nToken: ${token}\nBalance: ${balance}`;
+             } catch (e: any) {
+                 return `Error checking balance: ${e.message}`;
+             }
+        }
         else if (lowerPrompt.includes("swap") || lowerPrompt.includes("buy") || lowerPrompt.includes("sell") || lowerPrompt === "approve") {
            // Swap Fallback (Stateless/One-Shot)
            if (lowerPrompt === "approve") {
@@ -244,10 +268,12 @@ No structured output — Warden UI will not trigger from text, so we use this te
            if (hasPortfolioKeyword) {
                // Explicit Portfolio Request
                const address = addressMatch ? addressMatch[0] : undefined;
+               
+               if (!address) return "To view portfolio, please provide a wallet address. Usage: 'Portfolio [address]'";
+
                const chain = lowerPrompt.includes("solana") ? "solana" : "base";
                
-               const input: any = { chain };
-               if (address) input.address = address;
+               const input: any = { chain, address };
               
                const rawResult = await terminal_portfolio.invoke(input) as string;
                try {
