@@ -1158,3 +1158,17 @@ export const terminal_yield = tool(
     }),
   }
 );
+
+export const terminal_bridge = tool(async () => {
+  return JSON.stringify({
+      title: "🌉 TOP BRIDGES: BASE",
+      links: [
+          { name: "Relay.link", url: "https://relay.link/base", desc: "Fast & Official" },
+          { name: "Jumper", url: "https://jumper.exchange/", desc: "Best Aggregator" },
+          { name: "deBridge", url: "https://app.debridge.com/", desc: "Instant Cross-Chain" }
+      ]
+  });
+}, {
+  name: "terminal_bridge",
+  description: "Returns a list of top bridges to Base network (Relay, Jumper, deBridge)."
+});

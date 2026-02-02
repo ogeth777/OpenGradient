@@ -189,12 +189,15 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       }
   }
 
-  if (lowerPrompt.includes("bridge") || lowerPrompt.includes("cross chain") || lowerPrompt.includes("relay")) {
-      return `🌉 **OFFICIAL BRIDGE: BASE**
+  if (lowerPrompt === "bridge" || lowerPrompt === "relay") {
+      const rawResult = await terminal_bridge.invoke({});
+      const data = JSON.parse(rawResult);
       
-🔗 **[Relay.link: Bridge to Base](https://relay.link/bridge)**
-
-*Fastest and most reliable way to bridge ETH/tokens to Base Network.*`;
+      let output = `**${data.title}**\n\n`;
+      data.links.forEach((l: any) => {
+          output += `🔗 [${l.name}](${l.url}) - ${l.desc}\n`;
+      });
+      return output;
   }
 
   if (lowerPrompt.includes("debank") || lowerPrompt.includes("wallet") || lowerPrompt.includes("portfolio")) {
