@@ -46,10 +46,10 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
         return `**${i+1}. ${t.name}** \`${t.address}\` (Symbol: ${t.symbol})\n` +
                `   🕒 1h: ${changeEmoji1h} **${change1h.toFixed(2)}%** | 📅 24h: ${changeEmoji24h} **${change24h.toFixed(2)}%**\n` +
                `   💵 Price: $${price} | 💎 MC: $${mcap}\n` +
-               `   🔗 [Trade on Uniswap](${t.swap_link}) | 📊 [GeckoTerminal](${t.link})`;
+               `   🔗 [Trade on Uniswap](${t.swap_link}) | 📊 [DexScreener](${t.link})`;
      }).join("\n\n");
 
-     return `🔥 **HOT ON BASE (Real-Time)**\n\n${textList}`;
+     return `🔥 **TRENDING ON BASE (DexScreener)**\n\n${textList}`;
   }
 
   if (lowerPrompt.includes("gainers") || lowerPrompt.includes("top") || lowerPrompt.includes("grew")) {

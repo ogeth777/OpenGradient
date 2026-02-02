@@ -155,34 +155,48 @@ export async function fetchTrendingTokens(chain: string = "base") {
     let source = "GeckoTerminal";
 
     if (chain.toLowerCase().includes("base")) {
-        // Use GeckoTerminal for Base (Real-time, specific to Base)
-        const response = await axios.get("https://api.geckoterminal.com/api/v2/networks/base/trending_pools?page=1");
-        const pools = response.data.data;
+        // Use DexScreener Boosts for Base (Matches user request for "Trending like screenshot" - DexScreener Boosts/Trending)
+        source = "DexScreener";
+        const response = await axios.get("https://api.dexscreener.com/token-boosts/top/v1");
+        const allBoosts = response.data;
+        const baseBoosts = allBoosts.filter((t: any) => t.chainId === 'base').slice(0, 10);
+        
+        // Fetch detailed data for these tokens to get 1h change and price
+        const addresses = baseBoosts.map((t: any) => t.tokenAddress).join(',');
+        
+        if (addresses) {
+            const details = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${addresses}`);
+            const pairs = details.data.pairs || [];
+            
+            // Map details back to the boosted order (or just use the best pair for each token)
+            // DexScreener returns pairs, we need to group by token or find the boost match
+            
+            // Create a map for quick lookup
+            const pairsMap = new Map();
+            pairs.forEach((p: any) => {
+                 if (p.chainId === 'base' && !pairsMap.has(p.baseToken.address.toLowerCase())) {
+                     pairsMap.set(p.baseToken.address.toLowerCase(), p);
+                 }
+            });
 
-        tokens = pools.map((p: any) => {
-            const attr = p.attributes;
-            // Clean up name: "TOKEN / ETH 0.3%" -> "TOKEN"
-            const cleanName = attr.name.split(" / ")[0]; 
-            return {
-                name: cleanName,
-                symbol: cleanName, // Use clean name as symbol for now since they are usually the same in pool names
-                address: attr.address, // Pool address, but we might want token address. 
-                // GeckoTerminal returns pool address in 'address'. 
-                // To get token address we usually need relationship data, but for now pool address is fine for links.
-                // Actually, for "Risk" scan we need token address. 
-                // GeckoTerminal response usually includes relationships, let's check debug output.
-                // For now, using pool address for Swap link is perfect. 
-                // For Risk scan, we might need to extract it or use pool address (some scanners accept pool).
-                // Let's use pool address for now and label it as such.
-                price: parseFloat(attr.base_token_price_usd || "0"),
-                change_1h: parseFloat(attr.price_change_percentage?.h1 || "0"),
-                change_24h: parseFloat(attr.price_change_percentage?.h24 || "0"),
-                volume_24h: parseFloat(attr.volume_usd?.h24 || "0"),
-                market_cap: parseFloat(attr.market_cap_usd || "0"),
-                link: `https://geckoterminal.com/base/pools/${attr.address}`,
-                swap_link: `https://app.uniswap.org/explore/pools/base/${attr.address}`
-            };
-        }).slice(0, 10); // Top 10
+            tokens = baseBoosts.map((boost: any) => {
+                const pair = pairsMap.get(boost.tokenAddress.toLowerCase());
+                if (!pair) return null;
+
+                return {
+                    name: pair.baseToken.name,
+                    symbol: pair.baseToken.symbol,
+                    address: pair.baseToken.address,
+                    price: parseFloat(pair.priceUsd || "0"),
+                    change_1h: pair.priceChange?.h1 || 0,
+                    change_24h: pair.priceChange?.h24 || 0,
+                    volume_24h: pair.volume?.h24 || 0,
+                    market_cap: pair.marketCap || pair.fdv || 0,
+                    link: pair.url,
+                    swap_link: `https://app.uniswap.org/explore/tokens/base/${pair.baseToken.address}`
+                };
+            }).filter((t: any) => t !== null);
+        }
 
     } else {
         // Fallback to CoinGecko for other chains (or if specifically requested)
