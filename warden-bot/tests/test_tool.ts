@@ -3,7 +3,7 @@ import {
   terminal_yield,
   terminal_trending,
   terminal_risk 
-} from "./tools";
+} from "../tools";
 
 async function main() {
   console.log("=== Testing Tools Directly (Bypassing AI) ===\n");

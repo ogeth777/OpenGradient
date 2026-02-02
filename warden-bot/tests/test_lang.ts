@@ -1,5 +1,5 @@
 
-import { processAgentRequest } from "./agent";
+import { processAgentRequest } from "../agent";
 
 async function main() {
     const prompt = "What are the trending tokens?";
