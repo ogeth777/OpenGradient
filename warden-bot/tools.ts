@@ -723,7 +723,7 @@ export const terminal_whale_watch = tool(
       try {
           const decimalsRes = await client.readContract({
               address: address as `0x${string}`,
-              abi: parseAbiItem('function decimals() view returns (uint8)'),
+              abi: erc20Abi,
               functionName: 'decimals'
           });
           decimals = Number(decimalsRes);
