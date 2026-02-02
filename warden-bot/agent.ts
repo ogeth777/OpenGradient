@@ -52,7 +52,8 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Whale [token]**: Live large transaction tracking 🐋
 - **Yield**: Best farming pools on Base
 - **Gas**: Real-time network gas price & swap cost
-- **Bridge**: Official Base Bridge (Relay)
+- **Bridge**: Top bridges (Relay, Jumper, deBridge)
+- **Airdrops**: Potential Airdrops Dashboard
 
 **💰 WALLET TRACKER**
 - **DeBank [address]**: Track any EVM portfolio (Assets, DeFi, History)

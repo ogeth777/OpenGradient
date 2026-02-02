@@ -1159,7 +1159,12 @@ export const terminal_yield = tool(
   }
 );
 
-export const terminal_bridge = tool(async () => {
+export const terminal_airdrops = tool(async () => {
+    return "🎁 **POTENTIAL AIRDROPS DASHBOARD**\n\n🔗 [CryptoRank Drophunting](https://cryptorank.io/drophunting)\n\n*Track potential airdrops, tasks, and rewards in one place.*";
+}, {
+    name: "terminal_airdrops",
+    description: "Returns a link to the Potential Airdrops Dashboard."
+});
   return JSON.stringify({
       title: "🌉 TOP BRIDGES: BASE",
       links: [
