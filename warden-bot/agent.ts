@@ -34,13 +34,17 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
      
      if (rawResult.error) return rawResult.error;
 
-     const textList = rawResult.tokens.map((t: any, i: number) => 
-        `${i+1}. **${t.name}** \`${t.address || "N/A"}\` ($${t.symbol}) $${t.current_price}\n` +
-        `   Change: ${t.price_change_percentage_24h.toFixed(2)}% | MC: $${(t.market_cap/1000000).toFixed(1)}M\n` +
-        `   [Chart](${t.link}) | [Trade](${t.trade_url}) | [Scan](${t.security_url})`
-     ).join("\n\n");
+     const textList = rawResult.tokens.map((t: any, i: number) => {
+        const changeEmoji = t.change_24h >= 0 ? "🟢" : "🔴";
+        const price = typeof t.price === 'number' ? t.price.toFixed(6) : t.price;
+        const mcap = typeof t.market_cap === 'number' ? (t.market_cap / 1000000).toFixed(2) + "M" : t.market_cap;
+        
+        return `**${i+1}. ${t.name}** ($${t.symbol})\n` +
+               `   ${changeEmoji} **${t.change_24h.toFixed(2)}%**  |  💵 $${price}  |  💎 MC: $${mcap}\n` +
+               `   🔗 [Trade on Uniswap](${t.swap_link}) | 📊 [GeckoTerminal](${t.link})`;
+     }).join("\n\n");
 
-     return `Here are the trending tokens on ${chain} right now:\n\n${textList}`;
+     return `🔥 **HOT ON BASE (Real-Time)**\n\n${textList}`;
   }
 
   if (lowerPrompt.includes("gainers") || lowerPrompt.includes("top") || lowerPrompt.includes("grew")) {
@@ -48,13 +52,17 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       const rawResult = await fetchTopGainers(chain);
       if (rawResult.error) return rawResult.error;
 
-      const textList = rawResult.tokens.map((t: any, i: number) => 
-        `${i+1}. **${t.symbol}** ($${t.current_price})\n` +
-        `   Change: ${t.price_change_percentage_24h.toFixed(2)}% | MC: $${(t.market_cap/1000000).toFixed(1)}M\n` +
-        `   [Chart](${t.link}) | [Trade](${t.trade_url}) | [Scan](${t.security_url})`
-      ).join("\n\n");
+      const textList = rawResult.tokens.map((t: any, i: number) => {
+         const changeEmoji = t.price_change_percentage_24h >= 0 ? "🟢" : "🔴";
+         const price = typeof t.current_price === 'number' ? t.current_price.toFixed(6) : t.current_price;
+         const mcap = typeof t.market_cap === 'number' ? (t.market_cap / 1000000).toFixed(2) + "M" : t.market_cap;
+         
+         return `**${i+1}. ${t.name}** ($${t.symbol})\n` +
+                `   ${changeEmoji} **${t.price_change_percentage_24h.toFixed(2)}%**  |  💵 $${price}  |  💎 MC: $${mcap}\n` +
+                `   🔗 [Trade](${t.trade_url}) | 📊 [CoinGecko](${t.link}) | 🛡️ [Scan](${t.security_url})`;
+      }).join("\n\n");
 
-      return `Here are the top gainers in the last 24h${chain ? ` on ${chain}` : ''}:\n\n${textList}`;
+      return `🚀 **TOP GAINERS (24h) ON ${chain ? chain.toUpperCase() : 'BASE'}**\n\n${textList}`;
   }
 
   if (lowerPrompt.includes("yield") || lowerPrompt.includes("farming") || lowerPrompt.includes("apy")) {
@@ -260,13 +268,17 @@ No structured output — Warden UI will not trigger from text, so we use this te
            
            if (rawResult.error) return rawResult.error;
 
-           const textList = rawResult.tokens.map((t: any, i: number) => 
-              `${i+1}. **${t.symbol}** ($${t.current_price})\n` +
-              `   Change: ${t.price_change_percentage_24h.toFixed(2)}% | MC: $${(t.market_cap/1000000).toFixed(1)}M\n` +
-              `   [Chart](${t.link}) | [Trade](${t.trade_url}) | [Scan](${t.security_url})`
-           ).join("\n\n");
+           const textList = rawResult.tokens.map((t: any, i: number) => {
+              const changeEmoji = t.price_change_percentage_24h >= 0 ? "🟢" : "🔴";
+              const price = typeof t.current_price === 'number' ? t.current_price.toFixed(6) : t.current_price;
+              const mcap = typeof t.market_cap === 'number' ? (t.market_cap / 1000000).toFixed(2) + "M" : t.market_cap;
+              
+              return `**${i+1}. ${t.name}** ($${t.symbol})\n` +
+                     `   ${changeEmoji} **${t.price_change_percentage_24h.toFixed(2)}%**  |  💵 $${price}  |  💎 MC: $${mcap}\n` +
+                     `   🔗 [Trade](${t.trade_url}) | 📊 [CoinGecko](${t.link}) | 🛡️ [Scan](${t.security_url})`;
+           }).join("\n\n");
 
-           return `Here are the top gainers in the last 24h${chain ? ` on ${chain}` : ''}:\n\n${textList}`;
+           return `🚀 **TOP GAINERS (24h) ON ${chain ? chain.toUpperCase() : 'BASE'}**\n\n${textList}`;
         }
         else if (lowerPrompt.includes("yield") || lowerPrompt.includes("farming") || lowerPrompt.includes("apy")) {
            const chain = lowerPrompt.includes("solana") ? "solana" : "base";
@@ -274,11 +286,14 @@ No structured output — Warden UI will not trigger from text, so we use this te
            try {
              const data = JSON.parse(rawResult);
              if (Array.isArray(data)) {
-                return `🌾 **Top Yield Opportunities on ${chain}**\n\n` + 
+                if (data.length === 0 || (data.length === 1 && data[0].pool === "")) {
+                    return `No yield opportunities found for ${chain}.`;
+                }
+                return `🌾 **Top Uniswap Yield Opportunities on ${chain}**\n\n` + 
                   data.map((p: any) => 
-                    `**${p.symbol}** (${p.project})\n` +
-                    `💰 APY: **${p.apy.toFixed(2)}%** | TVL: $${(p.tvl/1000000).toFixed(1)}M\n` +
-                    `🔗 [Open Pool](${p.link})`
+                    `**${p.symbol}**\n` +
+                    `💰 APR: **${p.apy.toFixed(2)}%** | TVL: ${p.tvl.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}\n` +
+                    `🔗 [Open Uniswap Pool](${p.link})`
                   ).join("\n\n");
              }
              return rawResult;
@@ -290,13 +305,17 @@ No structured output — Warden UI will not trigger from text, so we use this te
            
            if (rawResult.error) return rawResult.error;
 
-           const textList = rawResult.tokens.map((t: any, i: number) => 
-              `${i+1}. **${t.symbol}** ($${t.current_price})\n` +
-              `   Change: ${t.price_change_percentage_24h.toFixed(2)}% | MC: $${(t.market_cap/1000000).toFixed(1)}M\n` +
-              `   [Chart](${t.link}) | [Trade](${t.trade_url}) | [Scan](${t.security_url})`
-           ).join("\n\n");
+           const textList = rawResult.tokens.map((t: any, i: number) => {
+              const changeEmoji = t.change_24h >= 0 ? "🟢" : "🔴";
+              const price = typeof t.price === 'number' ? t.price.toFixed(6) : t.price;
+              const mcap = typeof t.market_cap === 'number' ? (t.market_cap / 1000000).toFixed(2) + "M" : t.market_cap;
+              
+              return `**${i+1}. ${t.name}** ($${t.symbol})\n` +
+                     `   ${changeEmoji} **${t.change_24h.toFixed(2)}%**  |  💵 $${price}  |  💎 MC: $${mcap}\n` +
+                     `   🔗 [Trade on Uniswap](${t.swap_link}) | 📊 [GeckoTerminal](${t.link})`;
+           }).join("\n\n");
 
-           return `Here are the trending tokens on ${chain} right now:\n\n${textList}`;
+           return `🔥 **HOT ON BASE (Real-Time)**\n\n${textList}`;
         }
         else if (lowerPrompt.includes("risk") || lowerPrompt.includes("audit") || lowerPrompt.includes("safe") || lowerPrompt.includes("security")) {
            const words = userPrompt.split(" ");
