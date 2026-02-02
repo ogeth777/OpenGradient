@@ -265,7 +265,9 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       terminal_balance,
       terminal_wallet_status,
       terminal_gas,
-      terminal_whale_watch
+      terminal_whale_watch,
+      terminal_bridge,
+      terminal_airdrops
     ];
 
             const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
