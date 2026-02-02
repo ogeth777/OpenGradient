@@ -400,7 +400,7 @@ No structured output — Warden UI will not trigger from text, so we use this te
 
              return `🤖 **Agent Internal Wallet**\n` +
                     `Address: ${result.address}\n` +
-                    `Balance: ${parseFloat(result.balance_eth).toFixed(4)} ETH\n` +
+                    `Balance: ${parseFloat(result.balance_eth || "0").toFixed(4)} ETH\n` +
                     `Network: ${result.network}\n\n` +
                     `To fund this agent, send ETH (Base) to the address above.`;
         }
