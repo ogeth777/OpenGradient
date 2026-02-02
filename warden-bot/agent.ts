@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, fetchTopGainers, fetchTrendingTokens, checkEthBalance } from "./tools";
+import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, fetchTopGainers, fetchTrendingTokens, checkEthBalance } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string, userAddress?: string, history: any[] = []) {
