@@ -21,8 +21,8 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Risk [token]**: Security scan (Honeypot/Rug check)
 - **Yield**: Best farming pools on Base
 
-**💰 PORTFOLIO & WALLET**
-- **Wallet**: Check Agent's internal trading wallet
+**💰 WALLET TRACKER**
+- **DeBank [address]**: Track any EVM portfolio (Assets, DeFi, History)
 
 *Type a command to proceed.*`;
           }
@@ -138,30 +138,40 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       }
   }
 
-  if (lowerPrompt.includes("balance") || lowerPrompt.includes("wallet")) {
-     if (lowerPrompt === "wallet" || lowerPrompt === "my wallet") {
+  if (lowerPrompt.includes("debank") || lowerPrompt.includes("wallet") || lowerPrompt.includes("portfolio")) {
+     // Check if user wants Agent's internal wallet
+     if (lowerPrompt.includes("agent") || lowerPrompt === "internal wallet") {
         return await terminal_wallet_status.invoke({}) as string;
      }
-     const words = lowerPrompt.split(" ");
-     const address = words.find(w => w.startsWith("0x") && w.length === 42);
-     const token = words.find(w => w === w.toUpperCase() && w.length >= 2 && !["BALANCE", "CHECK"].includes(w)) || "ETH";
+
+     const words = userPrompt.split(" "); // Use original case for address if needed, though addresses are hex
+     const addressMatch = userPrompt.match(/0x[a-fA-F0-9]{40}/);
+     const address = addressMatch ? addressMatch[0] : null;
      
      if (!address) {
-         if (lowerPrompt.includes("wallet")) return await terminal_wallet_status.invoke({}) as string;
+         return `🎒 **DeBank Portfolio Tracker**\n\n` +
+                `Please provide an EVM address to track.\n` +
+                `Usage: \`DeBank 0x...\` or \`Wallet 0x...\`\n\n` +
+                `*Tip: You can paste any user's address to see their net worth, assets, and DeFi positions.*`;
+     }
+     
+     return `🎒 **DeBank Portfolio Tracker**\n\n` +
+            `👤 Address: \`${address}\`\n` +
+            `🔗 [**Open DeBank Profile**](https://debank.com/profile/${address})\n\n` +
+            `*Click the link above to view full portfolio analytics.*`;
+  }
+
+  if (lowerPrompt.includes("balance")) {
+     const words = lowerPrompt.split(" ");
+     const addressMatch = userPrompt.match(/0x[a-fA-F0-9]{40}/);
+     const address = addressMatch ? addressMatch[0] : undefined;
+     const token = words.find(w => w.toUpperCase() === w && w.length >= 2 && !["BALANCE", "CHECK"].includes(w.toUpperCase())) || "ETH";
+     
+     if (!address) {
          return "Please provide a wallet address to check balance. Usage: `Balance [address] [token]`";
      }
      
      return await terminal_balance.invoke({ token, address }) as string;
-  }
-
-  if (lowerPrompt.includes("portfolio")) {
-     const words = lowerPrompt.split(" ");
-     const address = words.find(w => w.startsWith("0x") && w.length === 42);
-     if (!address) return "Please provide a wallet address. Usage: `Portfolio [address]`";
-     
-     return `📊 **Portfolio Analysis**\n\n` +
-            `Address: \`${address}\`\n` +
-            `🔗 [View on DeBank](https://debank.com/profile/${address})`;
   }
 
   try {
