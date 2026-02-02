@@ -736,13 +736,13 @@ export const terminal_whale_watch = tool(
       const logs = await client.getLogs({
           address: address as `0x${string}`,
           event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
-          fromBlock: blockNumber - 50n,
+          fromBlock: blockNumber - BigInt(50),
           toBlock: blockNumber
       });
 
       // 4. Process Logs
       const whales = logs.map(log => {
-          const value = formatUnits(log.args.value || 0n, decimals);
+          const value = formatUnits(log.args.value || BigInt(0), decimals);
           const usdValue = parseFloat(value) * priceUsd;
           return {
               hash: log.transactionHash,
