@@ -2,7 +2,16 @@ import { DynamicTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import axios from 'axios';
-import { createPublicClient, createWalletClient, http, formatUnits, formatEther, parseAbiItem, erc20Abi, parseUnits } from 'viem';
+import { 
+    createPublicClient, 
+    createWalletClient, 
+    http, 
+    formatUnits, 
+    formatEther, 
+    parseAbiItem, 
+    erc20Abi, 
+    parseUnits 
+} from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
 
