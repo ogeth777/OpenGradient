@@ -395,6 +395,8 @@ export async function fetchTopGainers(chain?: string) {
         price_change_percentage_24h: item.price_change_percentage_24h || 0,
         image: sanitizeImage(item.image),
         link: `https://www.coingecko.com/en/coins/${item.id}`,
+        trade_url: getTradeUrl(address, chain || "global"),
+        security_url: getSecurityUrl(address, chain || "global"),
         id: item.id,
         address: address
       });

@@ -139,8 +139,10 @@ No structured output — Warden UI will not trigger from text, so we use this te
            
            if (rawResult.error) return rawResult.error;
 
-           const textList = rawResult.tokens.map((t: any) => 
-              `${t.name} ${t.address} ($${t.symbol}): Price $${t.current_price}`
+           const textList = rawResult.tokens.map((t: any, i: number) => 
+              `${i+1}. **${t.symbol}** ($${t.current_price})\n` +
+              `   Change: ${t.price_change_percentage_24h.toFixed(2)}% | MC: $${(t.market_cap/1000000).toFixed(1)}M\n` +
+              `   [Chart](${t.link}) | [Trade](${t.trade_url}) | [Scan](${t.security_url})`
            ).join("\n\n");
 
            return `Here are the top gainers in the last 24h${chain ? ` on ${chain}` : ''}:\n\n${textList}`;
@@ -165,8 +167,10 @@ No structured output — Warden UI will not trigger from text, so we use this te
            
            if (rawResult.error) return rawResult.error;
 
-           const textList = rawResult.tokens.map((t: any) => 
-              `${t.name} ${t.address} ($${t.symbol}): Price $${t.current_price}`
+           const textList = rawResult.tokens.map((t: any, i: number) => 
+              `${i+1}. **${t.symbol}** ($${t.current_price})\n` +
+              `   Change: ${t.price_change_percentage_24h.toFixed(2)}% | MC: $${(t.market_cap/1000000).toFixed(1)}M\n` +
+              `   [Chart](${t.link}) | [Trade](${t.trade_url}) | [Scan](${t.security_url})`
            ).join("\n\n");
 
            return `Here are the trending tokens on ${chain} right now:\n\n${textList}`;
