@@ -2,7 +2,7 @@ import { DynamicTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import axios from 'axios';
-import { createPublicClient, http, formatUnits, parseAbiItem } from 'viem';
+import { createPublicClient, http, formatUnits, formatEther, parseAbiItem } from 'viem';
 import { base } from 'viem/chains';
 
 // --- Helper Functions ---
