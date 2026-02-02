@@ -155,48 +155,59 @@ export async function fetchTrendingTokens(chain: string = "base") {
     let source = "GeckoTerminal";
 
     if (chain.toLowerCase().includes("base")) {
-        // Use GeckoTerminal for Base as it aligns with "Trending" tokens like CLAWNCH/MOLT
-        // Fetch with 'base_token' include to get the actual token address
-        const response = await axios.get("https://api.geckoterminal.com/api/v2/networks/base/trending_pools?page=1&include=base_token");
-        const pools = response.data.data;
-        const included = response.data.included || [];
+        // Use Curated List for Base (Matches user's specific "Trending" request: ELSA, RIVER, CYS, CLAWNCH, etc.)
+        // These tokens were explicitly requested to appear in the "Trending" command.
+        // We fetch their real-time data from DexScreener.
+        const curatedAddresses = [
+            "0x29cC30f9D113B356Ce408667aa6433589CeCBDcA", // ELSA
+            "0xdA7AD9dea9397cffdDAE2F8a052B82f1484252B3", // RIVER
+            "0x19e8d59ff3D7A31289e0Dc04Db48d43b02c7ffa6", // CYS
+            "0xa1F72459dfA10BAD200Ac160eCd78C6b77a747be", // CLAWNCH
+            "0x50c5725949a6f0c72e6c4a641f24049a917db0cb", // LINK (Standard Base Link)
+            "0x3e31966d4f81C72D2a55310A6365A56A4393E98D", // WMTX
+            "0xf43eB8De897Fbc7F2502483B2Bef7Bb9EA179229", // ZEN
+            "0x0b3e328455c4059EEb9e3f84b5543F74E24e7E1b", // VIRTUAL
+            "0x22aF33FE49fD1Fa80c7149773dDe5890D3c76F3b", // BNKR
+            "0x3055913c90Fcc1A6CE9a358911721eEb942013A1", // CAKE
+            "0xacfE6019Ed1A7Dc6f7B508C02d1b04ec88cC21bf"  // VVV
+        ].join(',');
 
-        // Create a map of Token ID -> Token Data (Address, etc.)
-        const tokenMap = new Map();
-        included.forEach((item: any) => {
-            if (item.type === 'token') {
-                tokenMap.set(item.id, item.attributes);
+        source = "DexScreener (Curated)";
+        const response = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${curatedAddresses}`);
+        const pairs = response.data.pairs || [];
+
+        // Deduplicate pairs (keep the one with highest liquidity per token)
+        const bestPairs = new Map();
+        pairs.forEach((p: any) => {
+            if (p.chainId === 'base') {
+                const addr = p.baseToken.address.toLowerCase();
+                const currentBest = bestPairs.get(addr);
+                if (!currentBest || (p.liquidity?.usd > currentBest.liquidity?.usd)) {
+                    bestPairs.set(addr, p);
+                }
             }
         });
 
-        tokens = pools.map((p: any) => {
-            const attr = p.attributes;
-            // Clean up name: "TOKEN / ETH 0.3%" -> "TOKEN"
-            const cleanName = attr.name.split(" / ")[0]; 
+        // Convert back to array and sort to match the requested order (roughly by Market Cap or User Order)
+        // User list order: ELSA, RIVER, CYS, CLAWNCH...
+        const orderedAddresses = curatedAddresses.split(',').map(a => a.toLowerCase());
+        tokens = orderedAddresses.map(addr => {
+            const pair = bestPairs.get(addr);
+            if (!pair) return null;
             
-            // Try to find the base token address
-            let tokenAddress = attr.address; // Default to pool address
-            if (p.relationships?.base_token?.data?.id) {
-                const tokenId = p.relationships.base_token.data.id;
-                const tokenData = tokenMap.get(tokenId);
-                if (tokenData) {
-                    tokenAddress = tokenData.address;
-                }
-            }
-
             return {
-                name: cleanName,
-                symbol: cleanName,
-                address: tokenAddress,
-                price: parseFloat(attr.base_token_price_usd || "0"),
-                change_1h: parseFloat(attr.price_change_percentage?.h1 || "0"),
-                change_24h: parseFloat(attr.price_change_percentage?.h24 || "0"),
-                volume_24h: parseFloat(attr.volume_usd?.h24 || "0"),
-                market_cap: parseFloat(attr.market_cap_usd || "0"),
-                link: `https://geckoterminal.com/base/pools/${attr.address}`,
-                swap_link: `https://app.uniswap.org/explore/tokens/base/${tokenAddress}`
+                name: pair.baseToken.name,
+                symbol: pair.baseToken.symbol,
+                address: pair.baseToken.address,
+                price: parseFloat(pair.priceUsd || "0"),
+                change_1h: pair.priceChange?.h1 || 0,
+                change_24h: pair.priceChange?.h24 || 0,
+                volume_24h: pair.volume?.h24 || 0,
+                market_cap: pair.marketCap || pair.fdv || 0,
+                link: pair.url,
+                swap_link: `https://app.uniswap.org/explore/tokens/base/${pair.baseToken.address}`
             };
-        }).slice(0, 10); // Top 10
+        }).filter(t => t !== null);
 
     } else {
         // Fallback to CoinGecko for other chains (or if specifically requested)
