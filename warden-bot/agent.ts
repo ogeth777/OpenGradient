@@ -153,9 +153,11 @@ No structured output — Warden UI will not trigger from text, so we use this te
            try {
              const data = JSON.parse(rawResult);
              if (Array.isArray(data)) {
-                return `Here are the best yield opportunities on ${chain}:\n\n` + 
+                return `🌾 **Top Yield Opportunities on ${chain}**\n\n` + 
                   data.map((p: any) => 
-                    `• **${p.symbol}** (${p.project})\n  APY: ${p.apy}\n  TVL: ${p.tvl}\n  [Open Pool](${p.link})`
+                    `**${p.symbol}** (${p.project})\n` +
+                    `💰 APY: **${p.apy.toFixed(2)}%** | TVL: $${(p.tvl/1000000).toFixed(1)}M\n` +
+                    `🔗 [Open Pool](${p.link})`
                   ).join("\n\n");
              }
              return rawResult;
@@ -183,11 +185,11 @@ No structured output — Warden UI will not trigger from text, so we use this te
            try {
              const data = JSON.parse(rawResult);
              if (data.risk_analysis) {
-                 return `**RISK ANALYSIS: ${data.token} (${data.symbol})**\n` +
-                        `Risk Level: ${data.risk_analysis.level} (${data.risk_analysis.score}/100)\n` +
-                        `Price: ${data.current_price}\n` +
-                        `Factors:\n` + data.risk_analysis.factors.map((f: string) => `- ${f}`).join("\n") + "\n\n" +
-                        `[View on CoinGecko](${data.link})`;
+                 return `🛡️ **SECURITY SCAN: ${data.token} (${data.symbol})**\n` +
+                        `Risk Level: ${data.risk_analysis.level === "High" ? "🔴" : data.risk_analysis.level === "Medium" ? "🟡" : "🟢"} **${data.risk_analysis.level}** (${data.risk_analysis.score}/100)\n` +
+                        `Price: $${data.current_price}\n` +
+                        `Factors:\n` + data.risk_analysis.factors.map((f: string) => `• ${f}`).join("\n") + "\n\n" +
+                        `🔗 [Coingecko](${data.link}) | [Trade](${data.trade_url}) | [Security](${data.security_url})`;
              }
              return rawResult;
            } catch { return rawResult; }
@@ -209,7 +211,10 @@ No structured output — Warden UI will not trigger from text, so we use this te
 
              try {
                  const balance = await terminal_balance.invoke({ token, address });
-                 return `**Balance Query**\nAddress: ${address}\nToken: ${token}\nBalance: ${balance}`;
+                 return `💰 **Wallet Balance**\n` +
+                        `👛 Address: \`${address}\`\n` +
+                        `🪙 Token: **${token}**\n` +
+                        `💵 Balance: **${parseFloat(balance).toFixed(4)}**`;
              } catch (e: any) {
                  return `Error checking balance: ${e.message}`;
              }
@@ -264,6 +269,10 @@ No structured output — Warden UI will not trigger from text, so we use this te
            }
            return "To swap, please use the format: 'Swap 0.001 ETH for USDC'";
         }
+        else if (lowerPrompt.includes("wallet") || lowerPrompt.includes("agent funds")) {
+             const walletStatus = await terminal_wallet_status.invoke({});
+             return `🤖 **Agent Internal Wallet**\n${walletStatus}`;
+        }
         else {
            // Portfolio logic check (matches keyword or address)
            const addressMatch = userPrompt.match(/0x[a-fA-F0-9]{40}/);
@@ -283,7 +292,9 @@ No structured output — Warden UI will not trigger from text, so we use this te
                try {
                    const data = JSON.parse(rawResult);
                    if (data.debank_link) {
-                       return `**PORTFOLIO ANALYSIS**\n\n${data.action}\n\n[Open DeBank Profile](${data.debank_link})`;
+                       return `📊 **Portfolio Analysis**\n` +
+                              `👛 Address: \`${address}\`\n` +
+                              `🔗 [View on DeBank](${data.debank_link})`;
                    }
                    return rawResult;
                } catch { return rawResult; }
