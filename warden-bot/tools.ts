@@ -163,9 +163,9 @@ export async function fetchTrendingTokens(chain?: string) {
           // Fetch more pools to allow filtering
           const poolRes = await axios.get("https://api.geckoterminal.com/api/v2/networks/base/trending_pools?page=1");
           // Take top 30 to filter
-          const rawPools = poolRes.data.data.slice(0, 30);
+          const rawPools = poolRes.data.data.slice(0, 40);
           
-          // Filter out low MC tokens (< $500k) to match "CMC" style quality
+          // Filter out low MC tokens (< $100k) to match "CMC" style quality
           // And deduplicate by token address
           const uniqueTokens = new Map();
           const filteredPools = [];
@@ -174,7 +174,7 @@ export async function fetchTrendingTokens(chain?: string) {
               const mcap = parseFloat(p.attributes.market_cap_usd || p.attributes.fdv_usd || "0");
               const addr = p.relationships.base_token.data.id.replace("base_", "");
               
-              if (mcap > 500000 && !uniqueTokens.has(addr)) {
+              if (mcap > 100000 && !uniqueTokens.has(addr)) {
                   uniqueTokens.set(addr, true);
                   filteredPools.push(p);
               }
@@ -274,10 +274,10 @@ export async function fetchTrendingTokens(chain?: string) {
       }
     }
 
-    // Process top 9 for details (Address, real price/mcap if missing)
+    // Process top 10 for details (Address, real price/mcap if missing)
     // Use sequential execution to avoid rate limits
     const tokensWithAddresses = [];
-    const topCoins = coins.slice(0, 9);
+    const topCoins = coins.slice(0, 10);
 
     for (const item of topCoins) {
         let address = "N/A";
@@ -359,12 +359,12 @@ export async function fetchTopGainers(chain?: string) {
 
     const sortedCoins = response.data
       .sort((a: any, b: any) => (b.price_change_percentage_24h || 0) - (a.price_change_percentage_24h || 0))
-      .slice(0, 8);
+      .slice(0, 15);
 
-    // Fetch contract addresses for top 6 (reduced from 8)
+    // Fetch contract addresses for top 10 (reduced from 8)
     // Use sequential execution
     const tokensWithAddresses = [];
-    const topCoins = sortedCoins.slice(0, 6);
+    const topCoins = sortedCoins.slice(0, 10);
 
     for (const item of topCoins) {
       let address = "N/A";
@@ -424,11 +424,12 @@ export async function fetchYieldOpportunities(chain: string) {
     
     const targetChain = chainMap[chain.toLowerCase()] || "Base";
     
-    // Filter by chain and sort by APY (descending), take top 5 safe-ish pools (TVL > 1M)
+    // Filter by chain and sort by APY (descending), take top 10
+    // Relaxed filters: TVL > $10k, No max APY (but sort descending), ensure > 0
     const filteredPools = allPools
-      .filter((p: any) => p.chain === targetChain && p.tvlUsd > 1000000 && p.apy < 500) // Filter out crazy APYs and low TVL
+      .filter((p: any) => p.chain === targetChain && p.tvlUsd > 10000 && p.apy > 0)
       .sort((a: any, b: any) => b.apy - a.apy)
-      .slice(0, 5)
+      .slice(0, 10)
       .map((p: any) => ({
         project: p.project,
         symbol: p.symbol,
@@ -438,6 +439,10 @@ export async function fetchYieldOpportunities(chain: string) {
         chain: p.chain,
         link: `https://defillama.com/yields/pool/${p.pool}`
       }));
+
+    if (filteredPools.length === 0) {
+        return [{ project: "No Pools Found", symbol: "N/A", pool: "", apy: 0, tvl: 0, chain: targetChain, link: "" }];
+    }
 
     return filteredPools;
   } catch (error) {
@@ -475,6 +480,15 @@ export async function fetchTokenRisk(token: string, chain: string = "base") {
       };
 
       const platformId = platformMap[chain.toLowerCase()] || "base";
+
+      // 0. Pre-Resolution: If token is a symbol, try to resolve to address first
+      if (!token.startsWith("0x") && token.length < 20) {
+           const resolved = await resolveTokenAddress(token, chain);
+           if (resolved && resolved !== "N/A" && resolved.startsWith("0x")) {
+               token = resolved; // Update token to be the address
+               console.log(`Resolved symbol ${token} to address ${resolved}`);
+           }
+      }
 
       // 1. Check if input is an address
       if (token.startsWith("0x") && token.length === 42) {
