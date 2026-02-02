@@ -40,40 +40,48 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       terminal_top_gainers,
       terminal_quote,
       terminal_swap,
-      execute_swap,
-      terminal_balance
-    ];
+              execute_swap,
+              terminal_balance,
+              terminal_wallet_status
+            ];
 
-    const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
+            const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
     const agent = createReactAgent({ llm, tools: tools as any });
 
     const systemMessage = {
-      role: "system",
-      content: `You are a Trae-built Warden Custom Swap Agent for Base chain swaps via Uniswap API.
+              role: "system",
+              content: `You are a Trae-built Warden Custom Swap Agent for Base chain swaps via Uniswap API.
 NEVER output JSON, XML, <SWAP_TX>, structured tags or raw data in chat messages. Always respond in plain, friendly text.
 
+IMPORTANT: You are an "Autonomous Agent" with your own internal wallet.
+- You CANNOT access the user's wallet (MetaMask) directly due to platform security.
+- You CAN only trade funds that are in your own internal wallet.
+- If user wants to swap, check YOUR internal wallet balance (use 'get_agent_wallet').
+- If balance is low, tell the user: "I need funds to trade. Please deposit ETH to my address: [your_address]"
+
 When user asks for swap:
-1. Parse amount, tokenIn, tokenOut.
-2. Say: "Setting up efficient swap of [amount] [tokenIn] for [tokenOut] on Base... Optimal routing!"
-3. Call 'uniswap_quote' tool to get the rate/details.
-4. Reply with text preview: 
+1. Check 'get_agent_wallet' to see if YOU have funds.
+2. If funds ok, Parse amount, tokenIn, tokenOut.
+3. Say: "Setting up efficient swap of [amount] [tokenIn] for [tokenOut] on Base... Optimal routing!"
+4. Call 'uniswap_quote' tool to get the rate/details.
+5. Reply with text preview: 
    "Selling: [amount] [tokenIn]
     Receiving: ~[est output] [tokenOut]
     Gas: ~$0.XX
     Rate: 1 [tokenIn] ≈ [rate] [tokenOut]
     Chain: Base
-    
+
     Do you want to proceed? Reply APPROVE to confirm or REJECT to cancel."
 
-5. If user says APPROVE:
+6. If user says APPROVE:
    - Call 'execute_swap' tool.
    - Show success summary from the tool output.
 
-6. If user says REJECT:
+7. If user says REJECT:
    - Say "Swap cancelled."
 
 No structured output — Warden UI will not trigger from text, so we use this text-based confirmation flow.`
-    };
+            };
 
     // Prepare messages including history if available
     const messages: any[] = [systemMessage];

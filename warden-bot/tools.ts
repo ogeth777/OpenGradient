@@ -936,6 +936,35 @@ export const terminal_balance = tool(
   }
 );
 
+export const terminal_wallet_status = tool(
+  async () => {
+    try {
+        const privateKey = process.env.PRIVATE_KEY;
+        if (!privateKey) return "Error: Agent wallet not configured (missing PRIVATE_KEY).";
+
+        const account = privateKeyToAccount(privateKey as `0x${string}`);
+        const publicClient = createPublicClient({ chain: base, transport: http() });
+        
+        const balance = await publicClient.getBalance({ address: account.address });
+        const ethBalance = formatEther(balance);
+
+        return `Agent Wallet Status:
+- Address: ${account.address}
+- Balance: ${parseFloat(ethBalance).toFixed(4)} ETH
+- Network: Base Mainnet
+
+To fund this agent, send ETH (Base) to the address above.`;
+    } catch (e: any) {
+        return `Error fetching wallet status: ${e.message}`;
+    }
+  },
+  {
+    name: "get_agent_wallet",
+    description: "Get the agent's internal wallet address and ETH balance. Use this to show the user where to deposit funds for trading.",
+    schema: z.object({})
+  }
+);
+
 export const terminal_yield = tool(
   async ({ chain }) => {
     try {
