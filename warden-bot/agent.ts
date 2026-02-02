@@ -61,33 +61,58 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 
   if (lowerPrompt.includes("yield") || lowerPrompt.includes("farming") || lowerPrompt.includes("apy")) {
      const chain = lowerPrompt.includes("solana") ? "solana" : "base";
-     const rawResult = await terminal_yield.invoke({ chain }) as string;
      try {
-       const data = JSON.parse(rawResult);
-       if (Array.isArray(data)) {
-          return `🌾 **Top Yield Opportunities on ${chain}**\n\n` + 
-            data.map((p: any) => 
-              `**${p.symbol}** (${p.project})\n` +
-              `💰 APY: **${p.apy.toFixed(2)}%** | TVL: $${(p.tvl/1000000).toFixed(1)}M\n` +
-              `🔗 [Open Pool](${p.link})`
-            ).join("\n\n");
-       }
-       return rawResult;
-     } catch { return rawResult; }
+         // Invoke tool directly to get JSON string
+         const rawResult = await terminal_yield.invoke({ chain });
+         
+         // Parse JSON
+         const data = JSON.parse(rawResult);
+         
+         if (Array.isArray(data)) {
+            if (data.length === 0 || (data.length === 1 && data[0].pool === "")) {
+                return `No yield opportunities found for ${chain}.`;
+            }
+            return `🌾 **Top Yield Opportunities on ${chain}**\n\n` + 
+              data.map((p: any) => 
+                `**${p.symbol}** (${p.project})\n` +
+                `💰 APY: **${p.apy.toFixed(2)}%** | TVL: $${(p.tvl).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}\n` +
+                `🔗 [Open Pool](${p.link})`
+              ).join("\n\n");
+         }
+         return rawResult; // Return raw string if not array (e.g. error message)
+     } catch (e: any) { 
+         console.error("Yield command failed:", e);
+         return `Error fetching yield data: ${e.message}`; 
+     }
   }
 
   if (lowerPrompt.includes("risk") || lowerPrompt.includes("scan") || lowerPrompt.includes("audit")) {
-      const words = userPrompt.split(" ");
-      // Find token name (uppercase or after 'risk')
-      let token = words.find(w => w === w.toUpperCase() && w.length > 2 && !["RISK", "SCAN", "AUDIT"].includes(w)) || 
-                 words[words.indexOf("risk") + 1] || 
-                 words[words.indexOf("scan") + 1] || 
-                 "BRETT";
-                 
+      const words = userPrompt.trim().split(/\s+/);
+      
+      // improved token extraction logic
+      let token = words.find(w => w.startsWith("0x") && w.length === 42); // Check for address first
+      
+      if (!token) {
+          // If not address, look for symbol (uppercase usually, or just not the command words)
+          // Filter out command words case-insensitively
+          const commandWords = ["risk", "scan", "audit", "check", "security", "analysis"];
+          const candidates = words.filter(w => !commandWords.includes(w.toLowerCase()));
+          
+          // Prefer uppercase or mixed case over purely lowercase if possible, but take first candidate
+          if (candidates.length > 0) {
+              token = candidates[0]; 
+          } else {
+              token = "BRETT"; // Default
+          }
+      }
+
       const chain = lowerPrompt.includes("solana") ? "solana" : "base";
-      const rawResult = await terminal_risk.invoke({ token, chain }) as string;
       try {
+        const rawResult = await terminal_risk.invoke({ token, chain });
         const data = JSON.parse(rawResult);
+        
+        if (data.error) return `❌ Error: ${data.error}`;
+
         if (data.risk_analysis) {
             return `🛡️ **SECURITY SCAN: ${data.token} (${data.symbol})**\n` +
                    `Risk Level: ${data.risk_analysis.level === "High" ? "🔴" : data.risk_analysis.level === "Medium" ? "🟡" : "🟢"} **${data.risk_analysis.level}** (${data.risk_analysis.score}/100)\n` +
@@ -96,7 +121,9 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
                    `🔗 [Coingecko](${data.link}) | [Trade](${data.trade_url}) | [Security](${data.security_url})`;
         }
         return rawResult;
-      } catch { return rawResult; }
+      } catch (e: any) { 
+          return `Error analyzing risk: ${e.message}`; 
+      }
   }
 
   if (lowerPrompt.includes("balance") || lowerPrompt.includes("wallet")) {

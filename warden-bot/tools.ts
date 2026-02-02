@@ -493,11 +493,62 @@ export async function fetchTokenRisk(token: string, chain: string = "base") {
       // 1. Check if input is an address
       if (token.startsWith("0x") && token.length === 42) {
           try {
+              // Try CoinGecko first
               const contractRes = await axios.get(`https://api.coingecko.com/api/v3/coins/${platformId}/contract/${token}`);
               fullData = contractRes.data;
               coinId = fullData.id;
           } catch (e) {
-              console.log(`Token not found on ${platformId} by address ${token}, trying global search...`);
+              console.log(`Token not found on ${platformId} by address ${token} via CoinGecko. Trying DexScreener...`);
+              
+              // Fallback to DexScreener for fresh tokens
+              try {
+                  const dexRes = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${token}`);
+                  if (dexRes.data.pairs && dexRes.data.pairs.length > 0) {
+                      // Find best pair for this chain
+                      const bestPair = dexRes.data.pairs.find((p: any) => p.chainId === chain.toLowerCase()) || dexRes.data.pairs[0];
+                      
+                      // Construct data from DexScreener
+                      const liquidity = bestPair.liquidity?.usd || 0;
+                      const fdv = bestPair.fdv || 0;
+                      const mcap = bestPair.marketCap || fdv;
+                      const priceChange = bestPair.priceChange?.h24 || 0;
+                      
+                      // Calculate Risk Score
+                      let riskScore = 50;
+                      if (liquidity < 10000) riskScore += 40; // Very low liquidity
+                      else if (liquidity < 100000) riskScore += 20;
+                      else riskScore -= 10;
+                      
+                      if (Math.abs(priceChange) > 20) riskScore += 20;
+                      
+                      riskScore = Math.min(Math.max(riskScore, 0), 100);
+                      const riskLevel = riskScore > 75 ? "High" : riskScore > 40 ? "Medium" : "Low";
+
+                      return {
+                          token: bestPair.baseToken.name,
+                          symbol: bestPair.baseToken.symbol.toUpperCase(),
+                          current_price: parseFloat(bestPair.priceUsd),
+                          market_cap: mcap,
+                          price_change_24h: priceChange,
+                          risk_analysis: {
+                              score: riskScore,
+                              level: riskLevel,
+                              factors: [
+                                  liquidity < 100000 ? "Low Liquidity (High Risk)" : "Healthy Liquidity",
+                                  Math.abs(priceChange) > 20 ? "High Volatility" : "Stable Price Action",
+                                  "Data Source: DexScreener (New Token)"
+                              ]
+                          },
+                          source: "DexScreener",
+                          link: bestPair.url,
+                          trade_url: getTradeUrl(token, chain),
+                          address: token,
+                          security_url: getSecurityUrl(token, chain)
+                      };
+                  }
+              } catch (dexErr) {
+                  console.error("DexScreener fallback failed:", dexErr);
+              }
           }
       } else if (platformId === "solana" && token.length > 30) {
            // Basic Solana address check (length usually 32-44 chars)
@@ -505,9 +556,9 @@ export async function fetchTokenRisk(token: string, chain: string = "base") {
               const contractRes = await axios.get(`https://api.coingecko.com/api/v3/coins/solana/contract/${token}`);
               fullData = contractRes.data;
               coinId = fullData.id;
-           } catch (e) {
+          } catch (e) {
                console.log(`Token not found on Solana by address ${token}, trying global search...`);
-           }
+          }
       }
 
       // 2. If not found by address or not an address, search by name/symbol
@@ -517,7 +568,7 @@ export async function fetchTokenRisk(token: string, chain: string = "base") {
       }
 
       if (!coinId) {
-        return { error: "Token not found on CoinGecko" };
+        return { error: "Token not found on CoinGecko or DexScreener" };
       }
 
       // 3. Get Market Data (Standardized)
@@ -594,7 +645,7 @@ export const terminal_trending = tool(
       const result = await fetchTrendingTokens(chain);
       return JSON.stringify(result, null, 2);
     } catch (error: any) {
-      return error.message;
+      return JSON.stringify({ error: error.message });
     }
   },
   {
@@ -612,7 +663,7 @@ export const terminal_risk = tool(
       const result = await fetchTokenRisk(token, chain);
       return JSON.stringify(result, null, 2);
     } catch (error: any) {
-      return error.message;
+      return JSON.stringify({ error: error.message });
     }
   },
   {
@@ -993,16 +1044,9 @@ export const terminal_yield = tool(
   async ({ chain }) => {
     try {
       const result = await fetchYieldOpportunities(chain);
-      // Format for text output
-      const formatted = result.map((p: any) => ({
-          ...p,
-          apy: `${p.apy.toFixed(2)}%`,
-          tvl: `$${(p.tvl / 1000000).toFixed(2)}M`
-      }));
-      if (formatted.length === 0) return `No yield opportunities found for ${chain} with TVL > $1M`;
-      return JSON.stringify(formatted, null, 2);
+      return JSON.stringify(result, null, 2);
     } catch (error: any) {
-      return error.message;
+      return JSON.stringify({ error: error.message });
     }
   },
   {
