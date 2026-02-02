@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, terminal_gas, fetchTopGainers, fetchTrendingTokens, checkEthBalance, fetchTokenBalance, fetchAgentWallet } from "./tools";
+import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, terminal_gas, terminal_whale_watch, fetchTopGainers, fetchTrendingTokens, checkEthBalance, fetchTokenBalance, fetchAgentWallet } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string, userAddress?: string, history: any[] = []) {
@@ -12,7 +12,36 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 
   // 0.1 Greeting / Menu Interception
           const greetings = ["hello", "hi", "hey", "start", "menu", "help", "commands", "привет", "меню"];
-          if (greetings.includes(lowerPrompt)) {
+          if (lowerPrompt.startsWith("whale")) {
+      const token = lowerPrompt.replace("whale", "").trim();
+      if (!token) return "⚠️ Please specify a token. Example: `Whale TOSHI`";
+      
+      try {
+          const rawResult = await terminal_whale_watch.invoke({ token });
+          const data = JSON.parse(rawResult);
+          
+          if (data.error) return `❌ ${data.error}`;
+          if (data.whales.length === 0) return `🐋 **Whale Watch: ${data.token}**\n\n*No large transactions (> $500) detected in the last ${data.block_range} blocks.*`;
+
+          let output = `🐋 **Whale Watch: ${data.token}**\n`;
+          output += `💎 Price: $${data.price.toFixed(6)}\n`;
+          output += `🔍 Scanned Last ${data.block_range} Blocks (~1.5 mins)\n\n`;
+
+          data.whales.forEach((w: any, i: number) => {
+              const emoji = w.usd > 5000 ? "🚨" : "👀";
+              output += `${emoji} **$${w.usd.toFixed(2)}** (${w.amount.toFixed(0)} ${data.token})\n`;
+              output += `   From: \`${w.from.slice(0,6)}...${w.from.slice(-4)}\`\n`;
+              output += `   To:   \`${w.to.slice(0,6)}...${w.to.slice(-4)}\`\n`;
+              output += `   🔗 [Tx](https://basescan.org/tx/${w.hash})\n\n`;
+          });
+
+          return output;
+      } catch (e: any) {
+          return `Error fetching whale data: ${e.message}`;
+      }
+  }
+
+  if (greetings.includes(lowerPrompt)) {
               return `**🤖 TERMINAL AI V1.0**
 *Current Network: Base 🔵 (More Chains Coming Soon 🔜)*
 
@@ -20,6 +49,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Trend**: Top trending tokens on Base
 - **Gainers**: Top 24h gainers
 - **Risk [token]**: Security scan (Honeypot/Rug check)
+- **Whale [token]**: Live large transaction tracking 🐋
 - **Yield**: Best farming pools on Base
 - **Gas**: Real-time network gas price & swap cost
 - **Bridge**: Official Base Bridge (Relay)
@@ -230,7 +260,8 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       execute_swap,
       terminal_balance,
       terminal_wallet_status,
-      terminal_gas
+      terminal_gas,
+      terminal_whale_watch
     ];
 
             const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });

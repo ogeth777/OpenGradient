@@ -13,6 +13,9 @@ async function test() {
     console.log("\n=== Testing Yield ===");
     const yieldRes = await processAgentRequest("Yield");
     console.log(yieldRes);
-}
 
+    console.log("\n=== Testing Whale Watch ===");
+    const whaleRes = await processAgentRequest("Whale TOSHI");
+    console.log(whaleRes);
+}
 test();

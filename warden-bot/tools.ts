@@ -690,6 +690,92 @@ export const terminal_trending = tool(
   }
 );
 
+export const terminal_whale_watch = tool(
+  async ({ token }) => {
+    try {
+      // 1. Resolve Token Address & Price
+      let address = token;
+      let priceUsd = 0;
+      let decimals = 18;
+      let symbol = token.toUpperCase();
+
+      if (!token.startsWith("0x")) {
+          const search = await axios.get(`https://api.dexscreener.com/latest/dex/search?q=${token}`);
+          const pair = search.data.pairs?.find((p: any) => p.chainId === 'base');
+          if (!pair) return JSON.stringify({ error: `Token ${token} not found on Base.` });
+          address = pair.baseToken.address;
+          priceUsd = parseFloat(pair.priceUsd);
+          symbol = pair.baseToken.symbol;
+      } else {
+           const res = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${token}`);
+           const pair = res.data.pairs?.find((p: any) => p.chainId === 'base');
+           if (pair) {
+               priceUsd = parseFloat(pair.priceUsd);
+               symbol = pair.baseToken.symbol;
+           }
+      }
+
+      // 2. Setup Viem Client
+      const client = createPublicClient({ chain: base, transport: http() });
+      
+      // Get decimals
+      try {
+          const decimalsRes = await client.readContract({
+              address: address as `0x${string}`,
+              abi: parseAbiItem('function decimals() view returns (uint8)'),
+              functionName: 'decimals'
+          });
+          decimals = Number(decimalsRes);
+      } catch (e) {
+          // Default 18 if fails
+      }
+
+      // 3. Get Transfer Logs (Last 50 blocks ~ 1.5 mins to be fast)
+      const blockNumber = await client.getBlockNumber();
+      const logs = await client.getLogs({
+          address: address as `0x${string}`,
+          event: parseAbiItem('event Transfer(address indexed from, address indexed to, uint256 value)'),
+          fromBlock: blockNumber - 50n,
+          toBlock: blockNumber
+      });
+
+      // 4. Process Logs
+      const whales = logs.map(log => {
+          const value = formatUnits(log.args.value || 0n, decimals);
+          const usdValue = parseFloat(value) * priceUsd;
+          return {
+              hash: log.transactionHash,
+              from: log.args.from,
+              to: log.args.to,
+              amount: parseFloat(value),
+              usd: usdValue
+          };
+      })
+      .filter(w => w.usd > 500) // Filter > $500
+      .sort((a, b) => b.usd - a.usd)
+      .slice(0, 5); // Top 5
+
+      return JSON.stringify({
+          token: symbol,
+          address: address,
+          price: priceUsd,
+          whales: whales,
+          block_range: 50
+      }, null, 2);
+
+    } catch (error: any) {
+      return JSON.stringify({ error: error.message });
+    }
+  },
+  {
+    name: "whale_watch",
+    description: "Track large on-chain transactions (Whale Watch) for a specific token on Base. Shows recent high-value transfers.",
+    schema: z.object({
+      token: z.string().describe("Token symbol or address (e.g. TOSHI, 0x...)")
+    })
+  }
+);
+
 export const terminal_risk = tool(
   async ({ token, chain }) => {
     try {
