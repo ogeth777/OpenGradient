@@ -1,11 +1,11 @@
-import { tool } from "@langchain/core/tools";
+import { DynamicTool } from "@langchain/core/tools";
 import { z } from "zod";
-import axios from "axios";
-import { createPublicClient, createWalletClient, http, parseUnits, erc20Abi, formatEther, formatUnits } from "viem";
-import { privateKeyToAccount } from "viem/accounts";
-import { base } from "viem/chains";
+import { tool } from "@langchain/core/tools";
+import axios from 'axios';
+import { createPublicClient, http, formatUnits, parseAbiItem } from 'viem';
+import { base } from 'viem/chains';
 
-// --- Standalone Data Fetching Functions ---
+// --- Helper Functions ---
 
 // Hardcoded Decimals for Stability (Global Scope)
 const TOKEN_DECIMALS: Record<string, number> = {
@@ -636,6 +636,40 @@ export async function fetchAgentWallet() {
     }
 }
 
+export async function fetchGasPrice(chain: string = "base") {
+    try {
+        // Simple RPC call for gas price
+        const rpcUrl = chain === "base" ? "https://mainnet.base.org" : "https://api.mainnet-beta.solana.com";
+        
+        if (chain === "solana") {
+             return { error: "Gas tracking not supported for Solana yet." };
+        }
+
+        const response = await axios.post(rpcUrl, {
+            jsonrpc: "2.0",
+            method: "eth_gasPrice",
+            params: [],
+            id: 1
+        });
+
+        const gasWei = parseInt(response.data.result, 16);
+        const gasGwei = (gasWei / 1e9).toFixed(4);
+        
+        // Estimate basic costs
+        const swapCostEth = (gasWei * 150000) / 1e18; // Approx 150k gas for swap
+        const swapCostUsd = swapCostEth * 3000; // Approx ETH price $3000 (can be fetched dynamic if needed)
+        
+        return {
+            gwei: gasGwei,
+            swap_cost_eth: swapCostEth.toFixed(6),
+            status: parseFloat(gasGwei) < 0.1 ? "🟢 Low (Good)" : parseFloat(gasGwei) < 1 ? "🟡 Average" : "🔴 High"
+        };
+
+    } catch (e: any) {
+        return { error: e.message };
+    }
+}
+
 // --- LangChain Tools Wrappers ---
 
 export const terminal_trending = tool(
@@ -990,6 +1024,24 @@ To fund this agent, send ETH (Base) to the address above.`;
     name: "get_agent_wallet",
     description: "Get the agent's internal wallet address and ETH balance. Use this to show the user where to deposit funds for trading.",
     schema: z.object({})
+  }
+);
+
+export const terminal_gas = tool(
+  async ({ chain }) => {
+    try {
+      const res = await fetchGasPrice(chain || "base");
+      return JSON.stringify(res, null, 2);
+    } catch (e: any) {
+      return JSON.stringify({ error: e.message });
+    }
+  },
+  {
+    name: "get_gas_price",
+    description: "Get current gas price and estimated transaction costs on Base network.",
+    schema: z.object({
+      chain: z.string().optional().describe("The blockchain network (default: base)")
+    })
   }
 );
 

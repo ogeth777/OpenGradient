@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, fetchTopGainers, fetchTrendingTokens, checkEthBalance, fetchTokenBalance, fetchAgentWallet } from "./tools";
+import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, terminal_gas, fetchTopGainers, fetchTrendingTokens, checkEthBalance, fetchTokenBalance, fetchAgentWallet } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string, userAddress?: string, history: any[] = []) {
@@ -21,6 +21,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Gainers**: Top 24h gainers
 - **Risk [token]**: Security scan (Honeypot/Rug check)
 - **Yield**: Best farming pools on Base
+- **Gas**: Real-time network gas price & swap cost
 - **Bridge**: Official Base Bridge (Relay)
 
 **💰 WALLET TRACKER**
@@ -70,6 +71,24 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       }).join("\n\n");
 
       return `🚀 **TOP GAINERS (24h) ON ${chain ? chain.toUpperCase() : 'BASE'}**\n\n${textList}`;
+  }
+
+  if (lowerPrompt.includes("gas") || lowerPrompt.includes("fees") || lowerPrompt.includes("gwei")) {
+     const chain = lowerPrompt.includes("solana") ? "solana" : "base";
+     try {
+         const rawResult = await terminal_gas.invoke({ chain });
+         const data = JSON.parse(rawResult);
+         
+         if (data.error) return `❌ Error fetching gas: ${data.error}`;
+
+         return `⛽ **Base Network Gas Status**\n\n` +
+                `📊 Status: ${data.status}\n` +
+                `🔥 Gas Price: **${data.gwei} Gwei**\n` +
+                `💸 Est. Swap Cost: **${data.swap_cost_eth} ETH**\n\n` +
+                `*Low gas fees make it a great time to trade!*`;
+     } catch (e: any) {
+         return `Error fetching gas: ${e.message}`;
+     }
   }
 
   if (lowerPrompt.includes("yield") || lowerPrompt.includes("farming") || lowerPrompt.includes("apy")) {
@@ -208,10 +227,11 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       terminal_top_gainers,
       terminal_quote,
       terminal_swap,
-              execute_swap,
-              terminal_balance,
-              terminal_wallet_status
-            ];
+      execute_swap,
+      terminal_balance,
+      terminal_wallet_status,
+      terminal_gas
+    ];
 
             const llm = new ChatOpenAI({ model: "gpt-4o", temperature: 0.7 });
     const agent = createReactAgent({ llm, tools: tools as any });
