@@ -3,8 +3,7 @@
 > **Your All-in-One Autonomous Crypto Agent on Base 🔵**
 > *Powered by Warden Protocol & LangGraph*
 
-![Terminal AI Banner](https://via.placeholder.com/1200x300.png?text=TERMINAL+AI+BETA)
-*(Tip: Replace this image link with a screenshot of your agent in action!)*
+![Terminal AI Banner](./LOGO.jpg)
 
 **Terminal AI** is a professional-grade autonomous agent built for the **Warden Agent Hub**. It cuts through the market noise to provide real-time forensics, risk analysis, and trading insights exclusively for the Base network.
 
