@@ -22,9 +22,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Yield**: Best farming pools on Base
 
 **💰 PORTFOLIO & WALLET**
-- **Balance [address]**: Check token holdings
 - **Wallet**: Check Agent's internal trading wallet
-- **Portfolio [address]**: Detailed net worth analysis
 
 *Type a command to proceed.*`;
           }

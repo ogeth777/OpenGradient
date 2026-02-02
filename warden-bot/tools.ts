@@ -410,52 +410,62 @@ export async function fetchTopGainers(chain?: string) {
 
 export async function fetchYieldOpportunities(chain: string) {
   try {
-    // DefiLlama Pools API
-    const response = await axios.get("https://yields.llama.fi/pools");
-    const allPools = response.data.data;
-    
-    // Map common chain names to DefiLlama chain names
-    const chainMap: Record<string, string> = {
-      "base": "Base",
-      "solana": "Solana",
-      "ethereum": "Ethereum",
-      "arbitrum": "Arbitrum"
-    };
-    
-    const targetChain = chainMap[chain.toLowerCase()] || "Base";
-    
-    // Filter by chain and sort by APY (descending), take top 10
-    // Relaxed filters: TVL > $10k, No max APY (but sort descending), ensure > 0
-    // NEW: Filter specifically for Uniswap V3 on Base as requested
-    const filteredPools = allPools
-      .filter((p: any) => 
-          p.chain === targetChain && 
-          p.project === "uniswap-v3" && // Strictly Uniswap V3
-          p.tvlUsd > 10000 && 
-          p.apy > 0
-      )
-      .sort((a: any, b: any) => b.apy - a.apy)
-      .slice(0, 10)
-      .map((p: any) => ({
-        project: "Uniswap V3",
-        symbol: p.symbol,
-        pool: p.pool,
-        apy: p.apy, // Keep as number for raw data
-        tvl: p.tvlUsd, // Keep as number
-        chain: p.chain,
-        // Direct link to Uniswap Pool on Base
-        link: `https://app.uniswap.org/explore/pools/base/${p.pool}`
-      }));
+    // Switch to GeckoTerminal API for Base Uniswap V3 pools to ensure we get addresses for links
+    // "Top 10 on Base with best APR" -> We will approximate APR using Volume * Fee / TVL
+    // GeckoTerminal provides 24h volume and TVL (reserve_in_usd)
+    // We need to fetch pools for 'uniswap-v3-base'
 
-    if (filteredPools.length === 0) {
-        // Fallback if strict Uniswap filter fails, try general Base pools but still format for Uniswap if possible, 
-        // or just return generic message. Let's try to keep it robust.
-        // If no Uniswap pools found, maybe return top Base pools but warn.
-        // For now, let's assume DefiLlama has Uniswap data (it usually does).
-        return [{ project: "No Uniswap Pools Found", symbol: "N/A", pool: "", apy: 0, tvl: 0, chain: targetChain, link: "https://app.uniswap.org/explore/pools" }];
+    if (!chain.toLowerCase().includes("base")) {
+        // Fallback for other chains (not implemented yet for this specific request, but keep safe)
+        // For now, only Base is strictly requested with this new logic
+        return [{ project: "Only Base Supported", symbol: "N/A", pool: "", apy: 0, tvl: 0, chain: chain, link: "" }];
     }
 
-    return filteredPools;
+    const dexId = "uniswap-v3-base";
+    // Sort by 24h volume to find active pools (likely high yield)
+    const response = await axios.get(`https://api.geckoterminal.com/api/v2/networks/base/dexes/${dexId}/pools?page=1&sort=h24_volume_usd_desc`);
+    const pools = response.data.data;
+
+    const processedPools = pools.map((p: any) => {
+        const attr = p.attributes;
+        const name = attr.name; // e.g., "USDC / WETH 0.05%"
+        
+        // Parse fee from name
+        let feeTier = 0.003; // Default 0.3%
+        if (name.includes("0.01%")) feeTier = 0.0001;
+        else if (name.includes("0.05%")) feeTier = 0.0005;
+        else if (name.includes("0.3%")) feeTier = 0.003;
+        else if (name.includes("1%")) feeTier = 0.01;
+
+        const volume24h = parseFloat(attr.volume_usd?.h24 || "0");
+        const tvl = parseFloat(attr.reserve_in_usd || "0");
+        
+        // Estimate APY = (Volume * Fee * 365) / TVL * 100
+        // This is strictly LP fee APR, not including farming rewards (which DefiLlama tracks)
+        // But this is the best we can do to get DIRECT LINKS to specific pools with addresses
+        let apy = 0;
+        if (tvl > 0) {
+            apy = (volume24h * feeTier * 365) / tvl * 100;
+        }
+
+        return {
+            project: "Uniswap V3",
+            symbol: name,
+            pool: attr.address, // Contract address
+            apy: apy,
+            tvl: tvl,
+            chain: "Base",
+            link: `https://app.uniswap.org/explore/pools/base/${attr.address}`
+        };
+    });
+
+    // Sort by APY descending and take top 10
+    const top10 = processedPools
+        .filter((p: any) => p.tvl > 10000) // Filter low liquidity garbage
+        .sort((a: any, b: any) => b.apy - a.apy)
+        .slice(0, 10);
+
+    return top10;
   } catch (error) {
     console.error("Error fetching yield data:", error);
     throw new Error(`Error fetching yield data: ${error instanceof Error ? error.message : "Unknown error"}`);
