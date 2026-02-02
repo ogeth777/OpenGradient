@@ -161,9 +161,11 @@ export async function fetchTrendingTokens(chain: string = "base") {
 
         tokens = pools.map((p: any) => {
             const attr = p.attributes;
+            // Clean up name: "TOKEN / ETH 0.3%" -> "TOKEN"
+            const cleanName = attr.name.split(" / ")[0]; 
             return {
-                name: attr.name,
-                symbol: attr.name.split(" / ")[0], // "TOKEN / ETH" -> "TOKEN"
+                name: cleanName,
+                symbol: cleanName, // Use clean name as symbol for now since they are usually the same in pool names
                 address: attr.address, // Pool address, but we might want token address. 
                 // GeckoTerminal returns pool address in 'address'. 
                 // To get token address we usually need relationship data, but for now pool address is fine for links.

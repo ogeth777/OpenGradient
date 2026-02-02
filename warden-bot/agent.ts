@@ -39,8 +39,8 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
         const price = typeof t.price === 'number' ? t.price.toFixed(6) : t.price;
         const mcap = typeof t.market_cap === 'number' ? (t.market_cap / 1000000).toFixed(2) + "M" : t.market_cap;
         
-        return `**${i+1}. ${t.name}** ($${t.symbol})\n` +
-               `   ${changeEmoji} **${t.change_24h.toFixed(2)}%**  |  💵 $${price}  |  💎 MC: $${mcap}\n` +
+        return `**${i+1}. ${t.name}** \`${t.address}\` (Symbol: ${t.symbol})\n` +
+               `   ${changeEmoji} **${t.change_24h.toFixed(2)}%** | 💵 $${price} | 💎 MC: $${mcap}\n` +
                `   🔗 [Trade on Uniswap](${t.swap_link}) | 📊 [GeckoTerminal](${t.link})`;
      }).join("\n\n");
 
@@ -78,7 +78,8 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
             if (data.length === 0 || (data.length === 1 && data[0].pool === "")) {
                 return `No yield opportunities found for ${chain}.`;
             }
-            return `🌾 **Top Uniswap Yield Opportunities on ${chain}**\n\n` + 
+            return `🌾 **Top Uniswap Yield Opportunities on ${chain}**\n` +
+              `(Note: APR is estimated and may vary based on trading volume and fee tier.)\n\n` +
               data.map((p: any) => 
                 `**${p.symbol}**\n` +
                 `💰 APR: **${p.apy.toFixed(2)}%** | TVL: ${p.tvl.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}\n` +
