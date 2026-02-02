@@ -52,6 +52,8 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Whale [token]**: Live large transaction tracking 🐋
 - **Yield**: Best farming pools on Base
 - **Gas**: Real-time network gas price & swap cost
+
+**🌉 CROSS-CHAIN & TOOLS**
 - **Bridge**: Top bridges (Relay, Jumper, deBridge)
 - **Airdrops**: Potential Airdrops Dashboard
 
