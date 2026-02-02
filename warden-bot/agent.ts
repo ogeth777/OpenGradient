@@ -196,7 +196,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       
       let output = `**${data.title}**\n\n`;
       data.links.forEach((l: any) => {
-          output += `🔗 [${l.name}](${l.url}) - ${l.desc}\n`;
+          output += `🔗 [${l.name}](${l.url})\n`;
       });
       return output;
   }

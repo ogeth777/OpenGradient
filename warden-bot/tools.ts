@@ -1168,7 +1168,7 @@ export const terminal_airdrops = tool(async () => {
 
 export const terminal_bridge = tool(async () => {
   return JSON.stringify({
-      title: "🌉 TOP BRIDGES: BASE",
+      title: "🌉 TOP BRIDGES:",
       links: [
           { name: "Relay.link", url: "https://relay.link/base", desc: "Fast & Official" },
           { name: "Jumper", url: "https://jumper.exchange/", desc: "Best Aggregator" },
