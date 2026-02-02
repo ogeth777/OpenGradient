@@ -426,22 +426,33 @@ export async function fetchYieldOpportunities(chain: string) {
     
     // Filter by chain and sort by APY (descending), take top 10
     // Relaxed filters: TVL > $10k, No max APY (but sort descending), ensure > 0
+    // NEW: Filter specifically for Uniswap V3 on Base as requested
     const filteredPools = allPools
-      .filter((p: any) => p.chain === targetChain && p.tvlUsd > 10000 && p.apy > 0)
+      .filter((p: any) => 
+          p.chain === targetChain && 
+          p.project === "uniswap-v3" && // Strictly Uniswap V3
+          p.tvlUsd > 10000 && 
+          p.apy > 0
+      )
       .sort((a: any, b: any) => b.apy - a.apy)
       .slice(0, 10)
       .map((p: any) => ({
-        project: p.project,
+        project: "Uniswap V3",
         symbol: p.symbol,
         pool: p.pool,
         apy: p.apy, // Keep as number for raw data
         tvl: p.tvlUsd, // Keep as number
         chain: p.chain,
-        link: `https://defillama.com/yields/pool/${p.pool}`
+        // Direct link to Uniswap Pool on Base
+        link: `https://app.uniswap.org/explore/pools/base/${p.pool}`
       }));
 
     if (filteredPools.length === 0) {
-        return [{ project: "No Pools Found", symbol: "N/A", pool: "", apy: 0, tvl: 0, chain: targetChain, link: "" }];
+        // Fallback if strict Uniswap filter fails, try general Base pools but still format for Uniswap if possible, 
+        // or just return generic message. Let's try to keep it robust.
+        // If no Uniswap pools found, maybe return top Base pools but warn.
+        // For now, let's assume DefiLlama has Uniswap data (it usually does).
+        return [{ project: "No Uniswap Pools Found", symbol: "N/A", pool: "", apy: 0, tvl: 0, chain: targetChain, link: "https://app.uniswap.org/explore/pools" }];
     }
 
     return filteredPools;

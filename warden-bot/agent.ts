@@ -72,11 +72,11 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
             if (data.length === 0 || (data.length === 1 && data[0].pool === "")) {
                 return `No yield opportunities found for ${chain}.`;
             }
-            return `🌾 **Top Yield Opportunities on ${chain}**\n\n` + 
+            return `🌾 **Top Uniswap Yield Opportunities on ${chain}**\n\n` + 
               data.map((p: any) => 
-                `**${p.symbol}** (${p.project})\n` +
-                `💰 APY: **${p.apy.toFixed(2)}%** | TVL: $${(p.tvl).toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}\n` +
-                `🔗 [Open Pool](${p.link})`
+                `**${p.symbol}**\n` +
+                `💰 APR: **${p.apy.toFixed(2)}%** | TVL: ${p.tvl.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}\n` +
+                `🔗 [Open Uniswap Pool](${p.link})`
               ).join("\n\n");
          }
          return rawResult; // Return raw string if not array (e.g. error message)
