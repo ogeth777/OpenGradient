@@ -175,6 +175,7 @@ export async function fetchTrendingTokens(chain: string = "base") {
                 // For Risk scan, we might need to extract it or use pool address (some scanners accept pool).
                 // Let's use pool address for now and label it as such.
                 price: parseFloat(attr.base_token_price_usd || "0"),
+                change_1h: parseFloat(attr.price_change_percentage?.h1 || "0"),
                 change_24h: parseFloat(attr.price_change_percentage?.h24 || "0"),
                 volume_24h: parseFloat(attr.volume_usd?.h24 || "0"),
                 market_cap: parseFloat(attr.market_cap_usd || "0"),

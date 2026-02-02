@@ -35,12 +35,17 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
      if ('error' in rawResult && rawResult.error) return rawResult.error;
 
      const textList = rawResult.tokens.map((t: any, i: number) => {
-        const changeEmoji = t.change_24h >= 0 ? "🟢" : "🔴";
+        const change1h = t.change_1h !== undefined ? t.change_1h : 0;
+        const changeEmoji1h = change1h >= 0 ? "🟢" : "🔴";
+        const change24h = t.change_24h !== undefined ? t.change_24h : 0;
+        const changeEmoji24h = change24h >= 0 ? "🟢" : "🔴";
+        
         const price = typeof t.price === 'number' ? t.price.toFixed(6) : t.price;
         const mcap = typeof t.market_cap === 'number' ? (t.market_cap / 1000000).toFixed(2) + "M" : t.market_cap;
         
         return `**${i+1}. ${t.name}** \`${t.address}\` (Symbol: ${t.symbol})\n` +
-               `   ${changeEmoji} **${t.change_24h.toFixed(2)}%** | 💵 $${price} | 💎 MC: $${mcap}\n` +
+               `   🕒 1h: ${changeEmoji1h} **${change1h.toFixed(2)}%** | 📅 24h: ${changeEmoji24h} **${change24h.toFixed(2)}%**\n` +
+               `   💵 Price: $${price} | 💎 MC: $${mcap}\n` +
                `   🔗 [Trade on Uniswap](${t.swap_link}) | 📊 [GeckoTerminal](${t.link})`;
      }).join("\n\n");
 
