@@ -14,6 +14,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
           const greetings = ["hello", "hi", "hey", "start", "menu", "help", "commands", "привет", "меню"];
           if (greetings.includes(lowerPrompt)) {
               return `**🤖 TERMINAL AI V1.0**
+*Current Network: Base 🔵 (More Chains Coming Soon 🔜)*
 
 **🔥 MARKET ANALYSIS**
 - **Trend**: Top trending tokens on Base
