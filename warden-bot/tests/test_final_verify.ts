@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { processAgentRequest } from './agent';
+import { processAgentRequest } from '../agent';
 
 async function test() {
     console.log("=== Testing Trend ===");

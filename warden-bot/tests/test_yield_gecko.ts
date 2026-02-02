@@ -1,6 +1,6 @@
 
 import 'dotenv/config';
-import { fetchYieldOpportunities } from './tools';
+import { fetchYieldOpportunities } from '../tools';
 import * as fs from 'fs';
 
 const LOG_FILE = 'test_yield_gecko.txt';
