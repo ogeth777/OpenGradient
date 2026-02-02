@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, terminal_gas, terminal_whale_watch, fetchTopGainers, fetchTrendingTokens, checkEthBalance, fetchTokenBalance, fetchAgentWallet } from "./tools";
+import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, terminal_gas, terminal_whale_watch, terminal_bridge, terminal_airdrops, fetchTopGainers, fetchTrendingTokens, checkEthBalance, fetchTokenBalance, fetchAgentWallet } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string, userAddress?: string, history: any[] = []) {
@@ -199,6 +199,10 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
           output += `🔗 [${l.name}](${l.url}) - ${l.desc}\n`;
       });
       return output;
+  }
+
+  if (lowerPrompt === "airdrop" || lowerPrompt === "airdrops") {
+      return await terminal_airdrops.invoke({}) as string;
   }
 
   if (lowerPrompt.includes("debank") || lowerPrompt.includes("wallet") || lowerPrompt.includes("portfolio")) {
