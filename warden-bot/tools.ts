@@ -705,13 +705,21 @@ export const terminal_swap = tool(
         const outDecimals = (tokenOut.toUpperCase().includes("USD")) ? 6 : 18; 
         const displayAmountOut = formatUnits(BigInt(amountOut), outDecimals);
         const gasUsd = route.gasUsd || "0.05";
+        
+        // Deep Links for User Utility
+        const uniswapLink = `https://app.uniswap.org/swap?chain=base&inputCurrency=${kyberTokenIn}&outputCurrency=${kyberTokenOut}&exactAmount=${amountAtomic}&exactField=input`;
+        const dexScreenerLink = `https://dexscreener.com/base/${kyberTokenOut}`;
 
         return `Swap Quote Details:
 - Selling: ${amount} ${tokenIn.toUpperCase()} (${tokenInAddr})
 - Receiving: ~${parseFloat(displayAmountOut).toFixed(6)} ${tokenOut.toUpperCase()}
 - Rate: 1 ${tokenIn.toUpperCase()} ≈ ${(parseFloat(displayAmountOut)/parseFloat(amount)).toFixed(4)} ${tokenOut.toUpperCase()}
 - Est. Gas: ~$${gasUsd}
-- Network: Base Mainnet`;
+- Network: Base Mainnet
+
+🔗 **Smart Action Links:**
+- [Swap on Uniswap](${uniswapLink}) (Click to trade yourself)
+- [Chart on DexScreener](${dexScreenerLink})`;
 
     } catch (error: any) {
       return `Error: ${error.message}`;

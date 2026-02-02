@@ -11,10 +11,29 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
   const lowerPrompt = userPrompt.toLowerCase().trim();
 
   // 0.1 Greeting / Menu Interception
-  const greetings = ["hello", "hi", "hey", "start", "menu", "help", "commands", "привет"];
-  if (greetings.includes(lowerPrompt)) {
-      return `Ready to swap tokens on Base. What's your trade?`;
-  }
+          const greetings = ["hello", "hi", "hey", "start", "menu", "help", "commands", "привет", "меню"];
+          if (greetings.includes(lowerPrompt)) {
+              return `**🤖 TERMINAL AI V1.0**
+
+**🔥 MARKET ANALYSIS**
+- **Trend**: Top trending tokens on Base
+- **Gainers**: Top 24h gainers
+- **Risk [token]**: Security scan (Honeypot/Rug check)
+- **Yield**: Best farming pools on Base
+
+**💰 PORTFOLIO & WALLET**
+- **Balance [address]**: Check token holdings
+- **Wallet**: Check Agent's internal trading wallet
+- **Portfolio [address]**: Detailed net worth analysis
+
+**🔄 SMART TRADING**
+- **Swap [amount] [token] for [token]**:
+  - Get optimal route & quote
+  - **NEW**: Generates direct Uniswap Link for you
+  - *Agent Trading*: Executed if Agent has funds
+
+*Type a command to proceed.*`;
+          }
 
   try {
     const { WardenAgentKit } = await import("@wardenprotocol/warden-agent-kit-core");
