@@ -29,6 +29,102 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 *Type a command to proceed.*`;
           }
 
+  // 0.2 Command Interception (Direct Tool Execution for Speed & Reliability)
+  if (lowerPrompt.includes("trend") || lowerPrompt.includes("hot")) {
+     const chain = lowerPrompt.includes("solana") ? "solana" : "base";
+     const rawResult = await fetchTrendingTokens(chain);
+     
+     if (rawResult.error) return rawResult.error;
+
+     const textList = rawResult.tokens.map((t: any, i: number) => 
+        `${i+1}. **${t.name}** \`${t.address || "N/A"}\` ($${t.symbol}) $${t.current_price}\n` +
+        `   Change: ${t.price_change_percentage_24h.toFixed(2)}% | MC: $${(t.market_cap/1000000).toFixed(1)}M\n` +
+        `   [Chart](${t.link}) | [Trade](${t.trade_url}) | [Scan](${t.security_url})`
+     ).join("\n\n");
+
+     return `Here are the trending tokens on ${chain} right now:\n\n${textList}`;
+  }
+
+  if (lowerPrompt.includes("gainers") || lowerPrompt.includes("top") || lowerPrompt.includes("grew")) {
+      const chain = lowerPrompt.includes("solana") ? "solana" : "base";
+      const rawResult = await fetchTopGainers(chain);
+      if (rawResult.error) return rawResult.error;
+
+      const textList = rawResult.tokens.map((t: any, i: number) => 
+        `${i+1}. **${t.symbol}** ($${t.current_price})\n` +
+        `   Change: ${t.price_change_percentage_24h.toFixed(2)}% | MC: $${(t.market_cap/1000000).toFixed(1)}M\n` +
+        `   [Chart](${t.link}) | [Trade](${t.trade_url}) | [Scan](${t.security_url})`
+      ).join("\n\n");
+
+      return `Here are the top gainers in the last 24h${chain ? ` on ${chain}` : ''}:\n\n${textList}`;
+  }
+
+  if (lowerPrompt.includes("yield") || lowerPrompt.includes("farming") || lowerPrompt.includes("apy")) {
+     const chain = lowerPrompt.includes("solana") ? "solana" : "base";
+     const rawResult = await terminal_yield.invoke({ chain }) as string;
+     try {
+       const data = JSON.parse(rawResult);
+       if (Array.isArray(data)) {
+          return `🌾 **Top Yield Opportunities on ${chain}**\n\n` + 
+            data.map((p: any) => 
+              `**${p.symbol}** (${p.project})\n` +
+              `💰 APY: **${p.apy.toFixed(2)}%** | TVL: $${(p.tvl/1000000).toFixed(1)}M\n` +
+              `🔗 [Open Pool](${p.link})`
+            ).join("\n\n");
+       }
+       return rawResult;
+     } catch { return rawResult; }
+  }
+
+  if (lowerPrompt.includes("risk") || lowerPrompt.includes("scan") || lowerPrompt.includes("audit")) {
+      const words = userPrompt.split(" ");
+      // Find token name (uppercase or after 'risk')
+      let token = words.find(w => w === w.toUpperCase() && w.length > 2 && !["RISK", "SCAN", "AUDIT"].includes(w)) || 
+                 words[words.indexOf("risk") + 1] || 
+                 words[words.indexOf("scan") + 1] || 
+                 "BRETT";
+                 
+      const chain = lowerPrompt.includes("solana") ? "solana" : "base";
+      const rawResult = await terminal_risk.invoke({ token, chain }) as string;
+      try {
+        const data = JSON.parse(rawResult);
+        if (data.risk_analysis) {
+            return `🛡️ **SECURITY SCAN: ${data.token} (${data.symbol})**\n` +
+                   `Risk Level: ${data.risk_analysis.level === "High" ? "🔴" : data.risk_analysis.level === "Medium" ? "🟡" : "🟢"} **${data.risk_analysis.level}** (${data.risk_analysis.score}/100)\n` +
+                   `Price: $${data.current_price}\n` +
+                   `Factors:\n` + data.risk_analysis.factors.map((f: string) => `• ${f}`).join("\n") + "\n\n" +
+                   `🔗 [Coingecko](${data.link}) | [Trade](${data.trade_url}) | [Security](${data.security_url})`;
+        }
+        return rawResult;
+      } catch { return rawResult; }
+  }
+
+  if (lowerPrompt.includes("balance") || lowerPrompt.includes("wallet")) {
+     if (lowerPrompt === "wallet" || lowerPrompt === "my wallet") {
+        return await terminal_wallet_status.invoke({}) as string;
+     }
+     const words = lowerPrompt.split(" ");
+     const address = words.find(w => w.startsWith("0x") && w.length === 42);
+     const token = words.find(w => w === w.toUpperCase() && w.length >= 2 && !["BALANCE", "CHECK"].includes(w)) || "ETH";
+     
+     if (!address) {
+         if (lowerPrompt.includes("wallet")) return await terminal_wallet_status.invoke({}) as string;
+         return "Please provide a wallet address to check balance. Usage: `Balance [address] [token]`";
+     }
+     
+     return await terminal_balance.invoke({ token, address }) as string;
+  }
+
+  if (lowerPrompt.includes("portfolio")) {
+     const words = lowerPrompt.split(" ");
+     const address = words.find(w => w.startsWith("0x") && w.length === 42);
+     if (!address) return "Please provide a wallet address. Usage: `Portfolio [address]`";
+     
+     return `📊 **Portfolio Analysis**\n\n` +
+            `Address: \`${address}\`\n` +
+            `🔗 [View on DeBank](https://debank.com/profile/${address})`;
+  }
+
   try {
     const { WardenAgentKit } = await import("@wardenprotocol/warden-agent-kit-core");
     const { WardenToolkit } = await import("@wardenprotocol/warden-langchain");
