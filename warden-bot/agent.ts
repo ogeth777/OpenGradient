@@ -53,8 +53,10 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Yield**: Best farming pools on Base
 - **Gas**: Real-time network gas price & swap cost
 
-**🌉 CROSS-CHAIN & TOOLS**
+**🌉 CROSS-CHAIN**
 - **Bridge**: Top bridges (Relay, Jumper, deBridge)
+
+**🎁 AIRDROPS**
 - **Airdrops**: Potential Airdrops Dashboard
 
 **💰 WALLET TRACKER**
