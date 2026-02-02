@@ -1060,7 +1060,7 @@ export const terminal_wallet_status = tool(
 
         return `Agent Wallet Status:
 - Address: ${result.address}
-- Balance: ${parseFloat(result.balance_eth).toFixed(4)} ETH
+- Balance: ${parseFloat(result.balance_eth || "0").toFixed(4)} ETH
 - Network: ${result.network}
 
 To fund this agent, send ETH (Base) to the address above.`;
