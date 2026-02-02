@@ -36,20 +36,14 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 
      const textList = rawResult.tokens.map((t: any, i: number) => {
         const change1h = t.change_1h !== undefined ? t.change_1h : 0;
-        const changeEmoji1h = change1h >= 0 ? "🟢" : "🔴";
-        const change24h = t.change_24h !== undefined ? t.change_24h : 0;
-        const changeEmoji24h = change24h >= 0 ? "🟢" : "🔴";
-        
+        // Use minimalist format as requested
         const price = typeof t.price === 'number' ? t.price.toFixed(6) : t.price;
-        const mcap = typeof t.market_cap === 'number' ? (t.market_cap / 1000000).toFixed(2) + "M" : t.market_cap;
         
         return `**${i+1}. ${t.name}** \`${t.address}\` (Symbol: ${t.symbol})\n` +
-               `   🕒 1h: ${changeEmoji1h} **${change1h.toFixed(2)}%** | 📅 24h: ${changeEmoji24h} **${change24h.toFixed(2)}%**\n` +
-               `   💵 Price: $${price} | 💎 MC: $${mcap}\n` +
-               `   🔗 [Trade on Uniswap](${t.swap_link}) | 📊 [DexScreener](${t.link})`;
+               `   💵 Price: $${price} | 🕒 1h Change: **${change1h.toFixed(2)}%**`;
      }).join("\n\n");
 
-     return `🔥 **TRENDING ON BASE (DexScreener)**\n\n${textList}`;
+     return `🔥 **TRENDING ON BASE (1h)**\n\n${textList}`;
   }
 
   if (lowerPrompt.includes("gainers") || lowerPrompt.includes("top") || lowerPrompt.includes("grew")) {

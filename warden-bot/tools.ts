@@ -155,48 +155,48 @@ export async function fetchTrendingTokens(chain: string = "base") {
     let source = "GeckoTerminal";
 
     if (chain.toLowerCase().includes("base")) {
-        // Use DexScreener Boosts for Base (Matches user request for "Trending like screenshot" - DexScreener Boosts/Trending)
-        source = "DexScreener";
-        const response = await axios.get("https://api.dexscreener.com/token-boosts/top/v1");
-        const allBoosts = response.data;
-        const baseBoosts = allBoosts.filter((t: any) => t.chainId === 'base').slice(0, 10);
-        
-        // Fetch detailed data for these tokens to get 1h change and price
-        const addresses = baseBoosts.map((t: any) => t.tokenAddress).join(',');
-        
-        if (addresses) {
-            const details = await axios.get(`https://api.dexscreener.com/latest/dex/tokens/${addresses}`);
-            const pairs = details.data.pairs || [];
-            
-            // Map details back to the boosted order (or just use the best pair for each token)
-            // DexScreener returns pairs, we need to group by token or find the boost match
-            
-            // Create a map for quick lookup
-            const pairsMap = new Map();
-            pairs.forEach((p: any) => {
-                 if (p.chainId === 'base' && !pairsMap.has(p.baseToken.address.toLowerCase())) {
-                     pairsMap.set(p.baseToken.address.toLowerCase(), p);
-                 }
-            });
+        // Use GeckoTerminal for Base as it aligns with "Trending" tokens like CLAWNCH/MOLT
+        // Fetch with 'base_token' include to get the actual token address
+        const response = await axios.get("https://api.geckoterminal.com/api/v2/networks/base/trending_pools?page=1&include=base_token");
+        const pools = response.data.data;
+        const included = response.data.included || [];
 
-            tokens = baseBoosts.map((boost: any) => {
-                const pair = pairsMap.get(boost.tokenAddress.toLowerCase());
-                if (!pair) return null;
+        // Create a map of Token ID -> Token Data (Address, etc.)
+        const tokenMap = new Map();
+        included.forEach((item: any) => {
+            if (item.type === 'token') {
+                tokenMap.set(item.id, item.attributes);
+            }
+        });
 
-                return {
-                    name: pair.baseToken.name,
-                    symbol: pair.baseToken.symbol,
-                    address: pair.baseToken.address,
-                    price: parseFloat(pair.priceUsd || "0"),
-                    change_1h: pair.priceChange?.h1 || 0,
-                    change_24h: pair.priceChange?.h24 || 0,
-                    volume_24h: pair.volume?.h24 || 0,
-                    market_cap: pair.marketCap || pair.fdv || 0,
-                    link: pair.url,
-                    swap_link: `https://app.uniswap.org/explore/tokens/base/${pair.baseToken.address}`
-                };
-            }).filter((t: any) => t !== null);
-        }
+        tokens = pools.map((p: any) => {
+            const attr = p.attributes;
+            // Clean up name: "TOKEN / ETH 0.3%" -> "TOKEN"
+            const cleanName = attr.name.split(" / ")[0]; 
+            
+            // Try to find the base token address
+            let tokenAddress = attr.address; // Default to pool address
+            if (p.relationships?.base_token?.data?.id) {
+                const tokenId = p.relationships.base_token.data.id;
+                const tokenData = tokenMap.get(tokenId);
+                if (tokenData) {
+                    tokenAddress = tokenData.address;
+                }
+            }
+
+            return {
+                name: cleanName,
+                symbol: cleanName,
+                address: tokenAddress,
+                price: parseFloat(attr.base_token_price_usd || "0"),
+                change_1h: parseFloat(attr.price_change_percentage?.h1 || "0"),
+                change_24h: parseFloat(attr.price_change_percentage?.h24 || "0"),
+                volume_24h: parseFloat(attr.volume_usd?.h24 || "0"),
+                market_cap: parseFloat(attr.market_cap_usd || "0"),
+                link: `https://geckoterminal.com/base/pools/${attr.address}`,
+                swap_link: `https://app.uniswap.org/explore/tokens/base/${tokenAddress}`
+            };
+        }).slice(0, 10); // Top 10
 
     } else {
         // Fallback to CoinGecko for other chains (or if specifically requested)
