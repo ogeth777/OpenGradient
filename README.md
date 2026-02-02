@@ -1,4 +1,4 @@
-# 🤖 TERMINAL AI (Beta)
+# 🤖 TERMINAL AI 
 
 > **Your All-in-One Autonomous Crypto Agent on Base 🔵**
 > *Powered by Warden Protocol & LangGraph*
