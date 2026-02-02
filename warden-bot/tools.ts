@@ -1165,6 +1165,7 @@ export const terminal_airdrops = tool(async () => {
     name: "terminal_airdrops",
     description: "Returns a link to the Potential Airdrops Dashboard."
 });
+export const terminal_bridge = tool(async () => {
   return JSON.stringify({
       title: "🌉 TOP BRIDGES: BASE",
       links: [
