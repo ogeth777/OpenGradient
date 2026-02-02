@@ -339,7 +339,7 @@ No structured output — Warden UI will not trigger from text, so we use this te
                  return `💰 **Wallet Balance**\n` +
                         `👛 Address: \`${address}\`\n` +
                         `🪙 Token: **${token}**\n` +
-                        `💵 Balance: **${parseFloat(result.balance).toFixed(4)}**`;
+                        `💵 Balance: **${parseFloat(result.balance || "0").toFixed(4)}**`;
              } catch (e: any) {
                  return `Error checking balance: ${e.message}`;
              }
