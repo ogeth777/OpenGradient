@@ -32,7 +32,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
      const chain = lowerPrompt.includes("solana") ? "solana" : "base";
      const rawResult = await fetchTrendingTokens(chain);
      
-     if (rawResult.error) return rawResult.error;
+     if ('error' in rawResult && rawResult.error) return rawResult.error;
 
      const textList = rawResult.tokens.map((t: any, i: number) => {
         const changeEmoji = t.change_24h >= 0 ? "🟢" : "🔴";
@@ -50,7 +50,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
   if (lowerPrompt.includes("gainers") || lowerPrompt.includes("top") || lowerPrompt.includes("grew")) {
       const chain = lowerPrompt.includes("solana") ? "solana" : "base";
       const rawResult = await fetchTopGainers(chain);
-      if (rawResult.error) return rawResult.error;
+      if ('error' in rawResult && rawResult.error) return rawResult.error;
 
       const textList = rawResult.tokens.map((t: any, i: number) => {
          const changeEmoji = t.price_change_percentage_24h >= 0 ? "🟢" : "🔴";
@@ -266,7 +266,7 @@ No structured output — Warden UI will not trigger from text, so we use this te
            const chain = lowerPrompt.includes("base") ? "base" : lowerPrompt.includes("solana") ? "solana" : undefined;
            const rawResult = await fetchTopGainers(chain);
            
-           if (rawResult.error) return rawResult.error;
+           if ('error' in rawResult && rawResult.error) return rawResult.error;
 
            const textList = rawResult.tokens.map((t: any, i: number) => {
               const changeEmoji = t.price_change_percentage_24h >= 0 ? "🟢" : "🔴";
@@ -303,7 +303,7 @@ No structured output — Warden UI will not trigger from text, so we use this te
            const chain = lowerPrompt.includes("solana") ? "solana" : "base";
            const rawResult = await fetchTrendingTokens(chain);
            
-           if (rawResult.error) return rawResult.error;
+           if ('error' in rawResult && rawResult.error) return rawResult.error;
 
            const textList = rawResult.tokens.map((t: any, i: number) => {
               const changeEmoji = t.change_24h >= 0 ? "🟢" : "🔴";
