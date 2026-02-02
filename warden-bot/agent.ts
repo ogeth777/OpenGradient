@@ -21,6 +21,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Gainers**: Top 24h gainers
 - **Risk [token]**: Security scan (Honeypot/Rug check)
 - **Yield**: Best farming pools on Base
+- **Bridge**: Official Base Bridge (Relay)
 
 **💰 WALLET TRACKER**
 - **DeBank [address]**: Track any EVM portfolio (Assets, DeFi, History)
@@ -137,6 +138,14 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       } catch (e: any) { 
           return `Error analyzing risk: ${e.message}`; 
       }
+  }
+
+  if (lowerPrompt.includes("bridge") || lowerPrompt.includes("cross chain") || lowerPrompt.includes("relay")) {
+      return `🌉 **OFFICIAL BRIDGE: BASE**
+      
+🔗 **[Relay.link: Bridge to Base](https://relay.link/bridge)**
+
+*Fastest and most reliable way to bridge ETH/tokens to Base Network.*`;
   }
 
   if (lowerPrompt.includes("debank") || lowerPrompt.includes("wallet") || lowerPrompt.includes("portfolio")) {
