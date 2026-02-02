@@ -1,4 +1,4 @@
-# NEXUS AI TERMINAL
+# Terminal Ai
 
 NEXUS AI TERMINAL is an advanced crypto AI agent built on the **Warden Protocol**, designed to provide real-time market insights, token analysis, and yield farming opportunities on Base and Solana networks.
 
