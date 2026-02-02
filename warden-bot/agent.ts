@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, fetchTopGainers, fetchTrendingTokens, checkEthBalance } from "./tools";
+import { terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, fetchTopGainers, fetchTrendingTokens, checkEthBalance, fetchTokenBalance, fetchAgentWallet } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string, userAddress?: string, history: any[] = []) {
@@ -333,11 +333,13 @@ No structured output — Warden UI will not trigger from text, so we use this te
              if (!address) return "To check balance, please provide a wallet address. Usage: 'Balance [address] [optional: token]'";
 
              try {
-                 const balance = await terminal_balance.invoke({ token, address });
+                 const result = await fetchTokenBalance(token, address);
+                 if (result.error) return `Error checking balance: ${result.error}`;
+
                  return `💰 **Wallet Balance**\n` +
                         `👛 Address: \`${address}\`\n` +
                         `🪙 Token: **${token}**\n` +
-                        `💵 Balance: **${parseFloat(balance).toFixed(4)}**`;
+                        `💵 Balance: **${parseFloat(result.balance).toFixed(4)}**`;
              } catch (e: any) {
                  return `Error checking balance: ${e.message}`;
              }
@@ -393,8 +395,14 @@ No structured output — Warden UI will not trigger from text, so we use this te
            return "To swap, please use the format: 'Swap 0.001 ETH for USDC'";
         }
         else if (lowerPrompt.includes("wallet") || lowerPrompt.includes("agent funds")) {
-             const walletStatus = await terminal_wallet_status.invoke({});
-             return `🤖 **Agent Internal Wallet**\n${walletStatus}`;
+             const result = await fetchAgentWallet();
+             if (result.error) return result.error;
+
+             return `🤖 **Agent Internal Wallet**\n` +
+                    `Address: ${result.address}\n` +
+                    `Balance: ${parseFloat(result.balance_eth).toFixed(4)} ETH\n` +
+                    `Network: ${result.network}\n\n` +
+                    `To fund this agent, send ETH (Base) to the address above.`;
         }
         else {
            // Portfolio logic check (matches keyword or address)

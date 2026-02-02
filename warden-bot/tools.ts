@@ -637,6 +637,87 @@ export async function fetchTokenRisk(token: string, chain: string = "base") {
     }
 }
 
+export async function fetchTokenBalance(token: string, address: string) {
+    try {
+        const publicClient = createPublicClient({
+            chain: base,
+            transport: http("https://mainnet.base.org")
+        });
+
+        const NATIVE_ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
+        
+        // Resolve token
+        let tokenAddr = token.toUpperCase() === "ETH" ? NATIVE_ETH : await resolveTokenAddress(token, "base");
+        
+        // If resolveTokenAddress returns N/A, try to see if it's a valid address
+        if (tokenAddr === "N/A" && token.startsWith("0x") && token.length === 42) {
+            tokenAddr = token;
+        }
+        
+        if (tokenAddr === "N/A") return { error: `Could not find address for token '${token}'` };
+        
+        let balance = BigInt(0);
+        let decimals = 18;
+
+        if (token.toUpperCase() === "ETH") { // Explicitly handle ETH as native
+             balance = await publicClient.getBalance({ address: address as `0x${string}` });
+        } else {
+            // Get decimals
+             try {
+                 if (TOKEN_DECIMALS[tokenAddr]) {
+                     decimals = TOKEN_DECIMALS[tokenAddr];
+                 } else {
+                     decimals = await publicClient.readContract({
+                         address: tokenAddr as `0x${string}`,
+                         abi: erc20Abi,
+                         functionName: 'decimals'
+                     });
+                 }
+                 balance = await publicClient.readContract({
+                     address: tokenAddr as `0x${string}`,
+                     abi: erc20Abi,
+                     functionName: 'balanceOf',
+                     args: [address as `0x${string}`]
+                 });
+             } catch (e: any) {
+                 return { error: `Error fetching ERC20 balance: ${e.message}` };
+             }
+        }
+
+        const formatted = formatUnits(balance, decimals);
+        return {
+            token,
+            address,
+            balance: formatted,
+            balance_wei: balance.toString(),
+            decimals
+        };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+}
+
+export async function fetchAgentWallet() {
+    try {
+        const privateKey = process.env.PRIVATE_KEY;
+        if (!privateKey) return { error: "Agent wallet not configured (missing PRIVATE_KEY)." };
+
+        const account = privateKeyToAccount(privateKey as `0x${string}`);
+        const publicClient = createPublicClient({ chain: base, transport: http() });
+        
+        const balance = await publicClient.getBalance({ address: account.address });
+        const ethBalance = formatEther(balance);
+
+        return {
+            address: account.address,
+            balance_eth: ethBalance,
+            network: "Base Mainnet"
+        };
+    } catch (e: any) {
+        return { error: e.message };
+    }
+}
+
 // --- LangChain Tools Wrappers ---
 
 export const terminal_trending = tool(
@@ -948,57 +1029,17 @@ export const execute_swap = tool(
 export const terminal_balance = tool(
   async ({ token, address }) => {
     try {
-        const publicClient = createPublicClient({
-            chain: base,
-            transport: http("https://mainnet.base.org")
-        });
-
-        const NATIVE_ETH = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
-        
-        // Resolve token
-        let tokenAddr = token.toUpperCase() === "ETH" ? NATIVE_ETH : await resolveTokenAddress(token, "base");
-        
-        // If resolveTokenAddress returns N/A, try to see if it's a valid address
-        if (tokenAddr === "N/A" && token.startsWith("0x") && token.length === 42) {
-            tokenAddr = token;
-        }
-        
-        if (tokenAddr === "N/A") return `Error: Could not find address for token '${token}'`;
-
-        const isNative = tokenAddr === NATIVE_ETH || tokenAddr === "0x4200000000000000000000000000000000000006" && token.toUpperCase() === "ETH"; // Handle WETH/ETH ambiguity if needed, but usually ETH is native
-        
-        let balance = BigInt(0);
-        let decimals = 18;
-
-        if (token.toUpperCase() === "ETH") { // Explicitly handle ETH as native
-             balance = await publicClient.getBalance({ address: address as `0x${string}` });
-        } else {
-            // Get decimals
-             try {
-                 if (TOKEN_DECIMALS[tokenAddr]) {
-                     decimals = TOKEN_DECIMALS[tokenAddr];
-                 } else {
-                     decimals = await publicClient.readContract({
-                         address: tokenAddr as `0x${string}`,
-                         abi: erc20Abi,
-                         functionName: 'decimals'
-                     });
-                 }
-                 balance = await publicClient.readContract({
-                     address: tokenAddr as `0x${string}`,
-                     abi: erc20Abi,
-                     functionName: 'balanceOf',
-                     args: [address as `0x${string}`]
-                 });
-             } catch (e: any) {
-                 return `Error fetching ERC20 balance: ${e.message}`;
-             }
-        }
-
-        const formatted = formatUnits(balance, decimals);
-        return formatted;
+        const result = await fetchTokenBalance(token, address);
+        if (result.error) return JSON.stringify({ error: result.error });
+        // Return raw balance string for now if tools expect that, OR return JSON.
+        // Previously it returned formatted string.
+        // Let's return JSON to be consistent with other tools, but agent might expect string.
+        // Wait, agent's fallback expects string but can handle JSON if I change it.
+        // However, the tool definition says it returns the balance.
+        // Let's return JSON and I'll update agent.ts to handle it.
+        return JSON.stringify(result, null, 2);
     } catch (error: any) {
-      return `Error: ${error.message}`;
+      return JSON.stringify({ error: error.message });
     }
   },
   {
@@ -1014,23 +1055,17 @@ export const terminal_balance = tool(
 export const terminal_wallet_status = tool(
   async () => {
     try {
-        const privateKey = process.env.PRIVATE_KEY;
-        if (!privateKey) return "Error: Agent wallet not configured (missing PRIVATE_KEY).";
-
-        const account = privateKeyToAccount(privateKey as `0x${string}`);
-        const publicClient = createPublicClient({ chain: base, transport: http() });
-        
-        const balance = await publicClient.getBalance({ address: account.address });
-        const ethBalance = formatEther(balance);
+        const result = await fetchAgentWallet();
+        if (result.error) return JSON.stringify({ error: result.error });
 
         return `Agent Wallet Status:
-- Address: ${account.address}
-- Balance: ${parseFloat(ethBalance).toFixed(4)} ETH
-- Network: Base Mainnet
+- Address: ${result.address}
+- Balance: ${parseFloat(result.balance_eth).toFixed(4)} ETH
+- Network: ${result.network}
 
 To fund this agent, send ETH (Base) to the address above.`;
     } catch (e: any) {
-        return `Error fetching wallet status: ${e.message}`;
+        return JSON.stringify({ error: e.message });
     }
   },
   {
