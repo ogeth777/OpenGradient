@@ -24,7 +24,7 @@ import { SwapHandler } from "../components/SwapHandler";
 
 export default function Home() {
   const [messages, setMessages] = useState<{ role: 'user' | 'agent'; content: string }[]>([
-    { role: 'agent', content: "Hi! I'm your Base Swap Agent. Tell me what to swap, e.g. 'Swap 10 USDC for ETH' or 'Buy 1000 BRETT with USDC' 🚀" }
+    { role: 'agent', content: "Hi! I'm TERMINAL AI (Official Warden Agent). Tell me what to swap, e.g. 'Swap 10 USDC for ETH' or 'Buy 1000 BRETT with USDC' 🚀" }
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -93,7 +93,7 @@ export default function Home() {
 
   const handleReset = () => {
     setMessages([
-      { role: 'agent', content: "Hi! I'm your Base Swap Agent. Tell me what to swap, e.g. 'Swap 10 USDC for ETH' or 'Buy 1000 BRETT with USDC' 🚀" }
+      { role: 'agent', content: "Hi! I'm TERMINAL AI (Official Warden Agent). Tell me what to swap, e.g. 'Swap 10 USDC for ETH' or 'Buy 1000 BRETT with USDC' 🚀" }
     ]);
     setInput("");
     setSessionId(Math.random().toString(36).substring(7).toUpperCase());

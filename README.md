@@ -1,5 +1,6 @@
-# 🤖 TERMINAL AI 
+# 🤖 TERMINAL AI (Official)
 
+> **🏆 Officially Listed in Warden Protocol Community Agents**
 > **Your All-in-One Autonomous Crypto Agent on Base 🔵**
 > *Powered by Warden Protocol & LangGraph*
 

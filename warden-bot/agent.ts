@@ -42,7 +42,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
   }
 
   if (greetings.includes(lowerPrompt)) {
-              return `**🤖 TERMINAL AI V1.0**
+              return `**🤖 TERMINAL AI (Official Warden Agent)**
 
 **🔥 MARKET ANALYSIS**
 - **Trend**: Top trending tokens on Base
