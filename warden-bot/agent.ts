@@ -86,7 +86,8 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
                `   🕒 1h: ${changeEmoji1h} **${change1h.toFixed(2)}%** | 📅 24h: ${changeEmoji24h} **${change24h.toFixed(2)}%**`;
      }).join("\n\n");
 
-     return `🔥 **TRENDING ON BASE (Live)**\n\n${textList}`;
+     const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+     return `🔥 **TRENDING ON BASE (Live)**\n*Last Update: ${time}*\n\n${textList}`;
   }
 
   if (lowerPrompt.includes("gainers") || lowerPrompt.includes("top") || lowerPrompt.includes("grew")) {
@@ -104,7 +105,8 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
                 `   🔗 [Trade](${t.trade_url}) | 📊 [CoinGecko](${t.link}) | 🛡️ [Scan](${t.security_url})`;
       }).join("\n\n");
 
-      return `🚀 **TOP GAINERS (24h) ON ${chain ? chain.toUpperCase() : 'BASE'}**\n\n${textList}`;
+      const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+      return `🚀 **TOP GAINERS (24h) ON ${chain ? chain.toUpperCase() : 'BASE'}**\n*Last Update: ${time}*\n\n${textList}`;
   }
 
   if (lowerPrompt.includes("gas") || lowerPrompt.includes("fees") || lowerPrompt.includes("gwei")) {
@@ -138,7 +140,9 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
             if (data.length === 0 || (data.length === 1 && data[0].pool === "")) {
                 return `No yield opportunities found for ${chain}.`;
             }
+            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
             return `🌾 **Top Uniswap Yield Opportunities on ${chain}**\n` +
+              `*Last Update: ${time}*\n` +
               `(Note: APR is estimated and may vary based on trading volume and fee tier.)\n\n` +
               data.map((p: any) => 
                 `**${p.symbol}**\n` +
@@ -266,11 +270,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       terminal_risk,
       terminal_portfolio,
       terminal_top_gainers,
-      terminal_quote,
-      terminal_swap,
-      execute_swap,
       terminal_balance,
-      terminal_wallet_status,
       terminal_gas,
       terminal_whale_watch,
       terminal_bridge,
@@ -368,7 +368,8 @@ No structured output — Warden UI will not trigger from text, so we use this te
                      `   🔗 [Trade](${t.trade_url}) | 📊 [CoinGecko](${t.link}) | 🛡️ [Scan](${t.security_url})`;
            }).join("\n\n");
 
-           return `🚀 **TOP GAINERS (24h) ON ${chain ? chain.toUpperCase() : 'BASE'}**\n\n${textList}`;
+           const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+           return `🚀 **TOP GAINERS (24h) ON ${chain ? chain.toUpperCase() : 'BASE'}**\n*Last Update: ${time}*\n\n${textList}`;
         }
         else if (lowerPrompt.includes("yield") || lowerPrompt.includes("farming") || lowerPrompt.includes("apy")) {
            const chain = lowerPrompt.includes("solana") ? "solana" : "base";
@@ -379,7 +380,9 @@ No structured output — Warden UI will not trigger from text, so we use this te
                 if (data.length === 0 || (data.length === 1 && data[0].pool === "")) {
                     return `No yield opportunities found for ${chain}.`;
                 }
-                return `🌾 **Top Uniswap Yield Opportunities on ${chain}**\n\n` + 
+                const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+                return `🌾 **Top Uniswap Yield Opportunities on ${chain}**\n` + 
+                  `*Last Update: ${time}*\n\n` +
                   data.map((p: any) => 
                     `**${p.symbol}**\n` +
                     `💰 APR: **${p.apy.toFixed(2)}%** | TVL: ${p.tvl.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })}\n` +
@@ -405,7 +408,8 @@ No structured output — Warden UI will not trigger from text, so we use this te
                      `   🔗 [Trade on Uniswap](${t.swap_link}) | 📊 [GeckoTerminal](${t.link})`;
            }).join("\n\n");
 
-           return `🔥 **HOT ON BASE (Real-Time)**\n\n${textList}`;
+           const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+           return `🔥 **HOT ON BASE (Real-Time)**\n*Last Update: ${time}*\n\n${textList}`;
         }
         else if (lowerPrompt.includes("risk") || lowerPrompt.includes("audit") || lowerPrompt.includes("safe") || lowerPrompt.includes("security")) {
            const words = userPrompt.split(" ");

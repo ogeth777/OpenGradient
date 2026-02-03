@@ -25,9 +25,31 @@ const TOKEN_DECIMALS: Record<string, number> = {
     "0x4200000000000000000000000000000000000006": 18, // WETH
 };
 
-// --- In-Memory Cache ---
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 Minutes Cache
-const cache: Record<string, { timestamp: number, data: any }> = {};
+async function fetchTokenDecimals(address: string): Promise<number> {
+    if (!address || !address.startsWith("0x")) return 18; // Native or Invalid
+    // Native tokens (Kyber uses this address for ETH)
+    if (address.toLowerCase() === "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") return 18;
+    
+    // Check Hardcoded Map First (Fast)
+    if (TOKEN_DECIMALS[address]) return TOKEN_DECIMALS[address];
+
+    try {
+        const client = createPublicClient({ chain: base, transport: http() });
+        const decimals = await client.readContract({
+            address: address as `0x${string}`,
+            abi: erc20Abi,
+            functionName: 'decimals'
+        });
+        return Number(decimals);
+    } catch (e) {
+        console.warn(`Failed to fetch decimals for ${address}, defaulting to 18.`);
+        return 18;
+    }
+}
+
+// --- In-Memory Cache (Removed for Real-Time Data) ---
+// const CACHE_TTL_MS = 10 * 60 * 1000; 
+// const cache: Record<string, { timestamp: number, data: any }> = {};
 
 function getTradeUrl(address: string, chain: string): string {
     if (!address || address === "N/A") return "";
@@ -157,8 +179,7 @@ export async function resolveTokenAddress(token: string, chain: string = "base")
 }
 
 export async function fetchTrendingTokens(chain: string = "base") {
-  const cacheKey = `trending_${chain}`;
-  // Removed cache to ensure real-time data as requested
+  // Real-time data fetch (No Cache)
   
   try {
     let tokens: any[] = [];
@@ -868,13 +889,11 @@ export const terminal_swap = tool(
         }
 
         // Get Decimals
-        let decimals = 18;
-        if (tokenInAddr !== "ETH" && tokenInAddr !== "0x0000000000000000000000000000000000000000") {
-             decimals = TOKEN_DECIMALS[tokenInAddr] || 18;
-        }
+        const inDecimals = await fetchTokenDecimals(tokenInAddr);
+        const outDecimals = await fetchTokenDecimals(tokenOutAddr);
 
         // Parse Amount
-        const amountAtomic = parseUnits(amount.toString(), decimals).toString();
+        const amountAtomic = parseUnits(amount.toString(), inDecimals).toString();
 
         // 1. Get Real Quote from KyberSwap
         // KyberSwap uses "0xeeee..." for native ETH
@@ -894,11 +913,6 @@ export const terminal_swap = tool(
 
         const route = res.data.data.routeSummary;
         const amountOut = route.amountOut;
-        const amountOutFormatted = formatUnits(BigInt(amountOut), TOKEN_DECIMALS[tokenOutAddr] || 6); // Default 6 for USDC stability, or 18?
-        // Note: We need better decimal handling for output, but simplified for now.
-        // Actually, let's try to guess decimals or just use a standard format.
-        // Safe bet: if USDC/USDT use 6, else 18.
-        const outDecimals = (tokenOut.toUpperCase().includes("USD")) ? 6 : 18; 
         const displayAmountOut = formatUnits(BigInt(amountOut), outDecimals);
         const gasUsd = route.gasUsd || "0.05";
         
@@ -956,11 +970,8 @@ export const execute_swap = tool(
             }
 
             // Decimals
-            let decimals = 18;
-            if (tokenInAddr !== "ETH" && tokenInAddr !== "0x0000000000000000000000000000000000000000") {
-                decimals = TOKEN_DECIMALS[tokenInAddr] || 18;
-            }
-            const amountAtomic = parseUnits(amount.toString(), decimals).toString();
+            const inDecimals = await fetchTokenDecimals(tokenInAddr);
+            const amountAtomic = parseUnits(amount.toString(), inDecimals).toString();
 
             // KyberSwap Params
             const kyberTokenIn = tokenInAddr === "ETH" || tokenInAddr === "0x4200000000000000000000000000000000000006" 
@@ -979,26 +990,7 @@ export const execute_swap = tool(
             }
             const routeSummary = routeRes.data.data.routeSummary;
 
-            // 2. Check Allowance (if not Native ETH)
-            if (kyberTokenIn !== "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
-                // Get Router Address from Kyber Config or API (usually constant for aggregator)
-                // Actually, route build response tells us the router, but we need to approve BEFORE build?
-                // Kyber Aggregator Router v6 on Base: 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5
-                // Safer: Call /route/build first? No, it might fail if not approved?
-                // Actually Kyber /route/build returns 'routerAddress' to approve.
-                // Let's call build first to get router address (it doesn't require on-chain approval to Generate calldata)
-                
-                const buildUrl = `https://aggregator-api.kyberswap.com/base/api/v1/route/build`;
-                const buildBody = {
-                    routeSummary: routeSummary,
-                    sender: account.address,
-                    recipient: account.address,
-                    slippageTolerance: 100 // 1%
-                };
-                // We can't build if we don't have approval? No, API usually builds anyway.
-            }
-
-            // 3. Build Transaction
+            // 2. Build Transaction (Gets Router Address)
             console.log("Building transaction...");
             const buildUrl = `https://aggregator-api.kyberswap.com/base/api/v1/route/build`;
             const buildBody = {
@@ -1013,9 +1005,9 @@ export const execute_swap = tool(
                  return `Error building transaction: ${buildRes.data.message}`;
             }
             
-            const { data: txData, routerAddress, amountIn } = buildRes.data.data;
+            const { data: txData, routerAddress } = buildRes.data.data;
 
-            // 4. Handle Approval (NOW we have routerAddress)
+            // 3. Handle Approval (NOW we have routerAddress)
             if (kyberTokenIn !== "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
                 const allowance = await publicClient.readContract({
                     address: tokenInAddr as `0x${string}`,
