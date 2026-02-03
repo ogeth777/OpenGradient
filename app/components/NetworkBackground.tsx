@@ -31,7 +31,7 @@ export default function NetworkBackground() {
 
     const initPoints = () => {
       points = [];
-      const numPoints = Math.floor((window.innerWidth * window.innerHeight) / 15000); // Density
+      const numPoints = Math.floor((window.innerWidth * window.innerHeight) / 15000); // Density of network points
       
       for (let i = 0; i < numPoints; i++) {
         points.push({
