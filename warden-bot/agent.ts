@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { terminal_chart, terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, terminal_gas, terminal_whale_watch, terminal_bridge, terminal_airdrops, terminal_gem_hunter, fetchTopGainers, fetchTrendingTokens, checkEthBalance, fetchTokenBalance, fetchAgentWallet } from "./tools";
+import { terminal_chart, terminal_battle, terminal_trending, terminal_yield, terminal_risk, terminal_portfolio, terminal_top_gainers, terminal_quote, terminal_swap, execute_swap, terminal_balance, terminal_wallet_status, terminal_gas, terminal_whale_watch, terminal_bridge, terminal_airdrops, terminal_gem_hunter, fetchTopGainers, fetchTrendingTokens, checkEthBalance, fetchTokenBalance, fetchAgentWallet } from "./tools";
 
 // Export the processing function for API usage
 export async function processAgentRequest(userPrompt: string, userAddress?: string, history: any[] = []) {
@@ -81,6 +81,18 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       }
   }
 
+  if (lowerPrompt.startsWith("battle") || lowerPrompt.startsWith("vs")) {
+      const parts = lowerPrompt.replace("battle", "").replace("vs", " ").split(" ").filter(p => p.trim() !== "");
+      if (parts.length < 2) return "⚠️ Please specify two tokens. Example: `Battle ETH vs BTC`";
+      
+      try {
+          const result = await terminal_battle.invoke({ tokenA: parts[0], tokenB: parts[1] });
+          return result;
+      } catch (e: any) {
+          return `Error in battle: ${e.message}`;
+      }
+  }
+
   if (greetings.includes(lowerPrompt)) {
               return `**🤖 TERMINAL AI (Official Warden Agent)**
 
@@ -93,6 +105,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Gem**: Find hidden gems (Low Cap/High Volume) 💎
 - **Chart [token]**: ASCII Price Chart (24h) 📈
    *(Try: Chart ETH, Chart BTC, Chart SOL)*
+- **Battle [A] [B]**: Compare two tokens ⚔️
 - **Gas**: Real-time network gas price & swap cost
 
 **🌉 CROSS-CHAIN**

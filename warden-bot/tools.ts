@@ -1129,6 +1129,128 @@ export const execute_swap = tool(
     }
 );
 
+export async function fetchBattleData(token: string, chain: string = "base") {
+    // 1. Try Native
+    const NATIVE_IDS: Record<string, string> = {
+        "ETH": "ethereum",
+        "BTC": "bitcoin",
+        "SOL": "solana",
+        "BNB": "binancecoin",
+        "AVAX": "avalanche-2",
+        "MATIC": "matic-network"
+    };
+
+    if (NATIVE_IDS[token.toUpperCase()]) {
+        try {
+            const coinId = NATIVE_IDS[token.toUpperCase()];
+            const url = `https://api.coingecko.com/api/v3/coins/${coinId}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`;
+            const res = await axios.get(url);
+            const md = res.data.market_data;
+            return {
+                name: res.data.name,
+                symbol: res.data.symbol.toUpperCase(),
+                price: md.current_price.usd,
+                mcap: md.market_cap.usd,
+                vol_24h: md.total_volume.usd,
+                change_24h: md.price_change_percentage_24h
+            };
+        } catch (e) {
+            console.log(`Native battle fetch failed for ${token}`);
+        }
+    }
+
+    // 2. Resolve Address
+    let address = token;
+    if (!token.startsWith("0x")) {
+        address = await resolveTokenAddress(token, chain);
+    }
+    
+    // Handle "ETH" return from resolveTokenAddress on Base -> Use WETH
+    if (address === "ETH" && chain.toLowerCase() === "base") {
+        address = "0x4200000000000000000000000000000000000006";
+    }
+
+    if (!address || address === "N/A") {
+        throw new Error(`Could not resolve address for ${token}`);
+    }
+
+    const platformMap: Record<string, string> = {
+          "base": "base",
+          "ethereum": "ethereum",
+          "solana": "solana",
+          "bsc": "binance-smart-chain",
+          "arbitrum": "arbitrum-one",
+          "optimism": "optimistic-ethereum",
+          "polygon": "polygon-pos"
+    };
+    const platform = platformMap[chain.toLowerCase()] || "base";
+
+    try {
+        const url = `https://api.coingecko.com/api/v3/coins/${platform}/contract/${address}`;
+        const res = await axios.get(url);
+        const md = res.data.market_data;
+        return {
+            name: res.data.name,
+            symbol: res.data.symbol.toUpperCase(),
+            price: md.current_price.usd,
+            mcap: md.market_cap.usd,
+            vol_24h: md.total_volume.usd,
+            change_24h: md.price_change_percentage_24h
+        };
+    } catch (e: any) {
+        throw new Error(`Failed to fetch battle data for ${token}`);
+    }
+}
+
+export const terminal_battle = tool(
+    async ({ tokenA, tokenB, chain = "base" }) => {
+        try {
+            const [dataA, dataB] = await Promise.all([
+                fetchBattleData(tokenA, chain),
+                fetchBattleData(tokenB, chain)
+            ]);
+
+            const winnerMcap = dataA.mcap > dataB.mcap ? dataA.symbol : dataB.symbol;
+            const winnerVol = dataA.vol_24h > dataB.vol_24h ? dataA.symbol : dataB.symbol;
+            const winnerChange = dataA.change_24h > dataB.change_24h ? dataA.symbol : dataB.symbol;
+            
+            let scoreA = 0;
+            let scoreB = 0;
+            if (dataA.mcap > dataB.mcap) scoreA++; else scoreB++;
+            if (dataA.vol_24h > dataB.vol_24h) scoreA++; else scoreB++;
+            if (dataA.change_24h > dataB.change_24h) scoreA++; else scoreB++;
+
+            const winner = scoreA > scoreB ? dataA.symbol : (scoreB > scoreA ? dataB.symbol : "DRAW");
+
+            const formatMoney = (n: number) => {
+                if (n >= 1e9) return `$${(n/1e9).toFixed(2)}B`;
+                if (n >= 1e6) return `$${(n/1e6).toFixed(2)}M`;
+                return `$${n.toLocaleString()}`;
+            };
+
+            return `⚔️ **TOKEN BATTLE: ${dataA.symbol} vs ${dataB.symbol}**\n\n` +
+                   `🏆 **WINNER: ${winner}** (${scoreA}-${scoreB})\n\n` +
+                   `| Metric | ${dataA.symbol} | ${dataB.symbol} | Winner |\n` +
+                   `| :--- | :--- | :--- | :--- |\n` +
+                   `| 💰 Price | $${dataA.price} | $${dataB.price} | - |\n` +
+                   `| 💎 M.Cap | ${formatMoney(dataA.mcap)} | ${formatMoney(dataB.mcap)} | ${winnerMcap} |\n` +
+                   `| 📊 Volume | ${formatMoney(dataA.vol_24h)} | ${formatMoney(dataB.vol_24h)} | ${winnerVol} |\n` +
+                   `| 🚀 24h % | ${dataA.change_24h.toFixed(2)}% | ${dataB.change_24h.toFixed(2)}% | ${winnerChange} |\n`;
+        } catch (e: any) {
+            return `❌ Battle Error: ${e.message}`;
+        }
+    },
+    {
+        name: "token_battle",
+        description: "Compares two tokens (Market Cap, Volume, 24h Change) to declare a winner.",
+        schema: z.object({
+            tokenA: z.string().describe("First token symbol"),
+            tokenB: z.string().describe("Second token symbol"),
+            chain: z.string().optional().describe("Chain name")
+        })
+    }
+);
+
 export const terminal_balance = tool(
   async ({ token, address }) => {
     try {
