@@ -92,6 +92,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Yield**: Best farming pools on Base
 - **Gem**: Find hidden gems (Low Cap/High Volume) 💎
 - **Chart [token]**: ASCII Price Chart (24h) 📈
+   *(Try: Chart ETH, Chart BTC, Chart SOL)*
 - **Gas**: Real-time network gas price & swap cost
 
 **🌉 CROSS-CHAIN**
