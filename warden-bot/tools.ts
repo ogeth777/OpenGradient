@@ -1356,9 +1356,10 @@ export const terminal_chart = tool(
             const data = await fetchTokenChartData(token, chain, days);
             const ascii = generateAsciiChart(data.prices);
             
-            return `📈 **PRICE CHART: ${data.symbol} (${chain.toUpperCase()})**\n` +
+            return `📈 **PRICE CHART: ${data.symbol}**\n` +
                    `💵 Price: $${data.current}\n` +
-                   `📊 Change (${days}d): ${data.change.toFixed(2)}%\n\n` +
+                   `📊 Change (${days}d): ${data.change.toFixed(2)}%\n` +
+                   `🕒 Last Update: ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}\n\n` +
                    `\`\`\`\n${ascii}\n\`\`\``;
         } catch (e: any) {
             return `❌ Chart Error: ${e.message}`;
