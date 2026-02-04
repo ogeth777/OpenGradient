@@ -9,6 +9,8 @@ Designed for the **Bitquant** style interface, Terminal AI brings institutional-
 ### 🔥 Market Analysis
 - **Trend**: Get the top trending tokens on Base (real-time data from DexScreener).
   - *Command:* `Trend`
+- **Chart**: Live ASCII price charts for ETH, BTC, SOL, and Base tokens.
+  - *Command:* `Chart [token]`
 - **Gainers**: View top 24h gainers with direct trade links.
   - *Command:* `Gainers`
 - **Risk Analysis**: Perform instant security audits on any token (Honeypot check, Rug pull risk).
@@ -19,6 +21,8 @@ Designed for the **Bitquant** style interface, Terminal AI brings institutional-
 ### 💰 Portfolio & Tools
 - **DeBank Tracker**: Track net worth and assets for any EVM address.
   - *Command:* `DeBank [address]`
+- **Warden Info**: Quick access to official Warden Protocol resources.
+  - *Command:* `Menu`
 - **Bridge**: Access the official Base bridge (Relay) instantly.
   - *Command:* `Bridge`
 - **Swap**: (Beta) Text-based swap execution via Agent's internal wallet.

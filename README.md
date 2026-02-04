@@ -30,12 +30,14 @@ Interact with Terminal AI using natural language or these specific commands:
 | Feature | Command / Trigger | Description |
 | :--- | :--- | :--- |
 | **🔥 Market Trends** | `Trend` / `Hot` | Shows top trending tokens on Base live. |
-| **📈 Top Gainers** | `Gainers` / `Top` | Lists the biggest 24h movers. |
+| **📈 Live Charts** | `Chart <token>` | **New:** Live ASCII price charts (ETH, BTC, SOL & Base). |
+| **🚀 Top Gainers** | `Gainers` / `Top` | Lists the biggest 24h movers. |
 | **🛡️ Risk Scanner** | `Risk <token>` | Performs a security audit (Honeypot, liquidity, verified contract). |
 | **🐋 Whale Watch** | `Whale <token>` | **Killer Feature:** Tracks live large buy/sell orders (>$500). |
 | **💰 Portfolio** | `DeBank <address>` | Full multi-chain wallet analysis via DeBank. |
 | **⛽ Gas Station** | `Gas` | Real-time Base gas fees & swap cost estimates. |
 | **🌾 Yield Search** | `Yield` | Finds the best APY farming pools on Base. |
+| **🌐 Warden Info** | `Menu` | Official Warden Protocol resources (Discord, Link3). |
 | **🌉 Bridge** | `Bridge` | Links to top bridges (Relay, Jumper, deBridge). |
 | **🎁 Airdrops** | `Airdrops` | Link to potential airdrop dashboards & tasks. |
 
