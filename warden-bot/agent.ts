@@ -61,6 +61,11 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 **💰 WALLET TRACKER**
 - **DeBank [address]**: Track any EVM portfolio (Assets, DeFi, History)
 
+**🌐 WARDEN PROTOCOL**
+- [Official Website](https://wardenprotocol.org/)
+- [Discord Community](https://discord.com/invite/wardenprotocol)
+- [Link3 Profile](https://link3.to/wardenprotocol)
+
 *Type a command to proceed.*`;
           }
 
