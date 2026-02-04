@@ -1,24 +1,23 @@
-# 🤖 TERMINAL AI (Official)
+# 🌌 OpenGradient
 
-> **🏆 Officially Listed in Warden Protocol Community Agents**
-> **Your All-in-One Autonomous Crypto Agent on Base 🔵**
-> *Powered by Warden Protocol & LangGraph*
+> **The Intelligent On-Chain Forensic Terminal**
+> *Powered by Warden Protocol & LangGraph on Base 🔵*
 
-![Terminal AI Banner](./LOGO.jpg)
+![OpenGradient Banner](https://img.shields.io/badge/Status-Active-success) ![License](https://img.shields.io/badge/License-MIT-blue) ![Network](https://img.shields.io/badge/Network-Base_L2-0052FF)
 
-**Terminal AI** is a professional-grade autonomous agent built for the **Warden Agent Hub**. It cuts through the market noise to provide real-time forensics, risk analysis, live charting, and trading insights exclusively for the Base network.
+**OpenGradient** is the repository for **Terminal AI**, a professional-grade autonomous agent built for the **Warden Agent Hub**. It cuts through the market noise to provide real-time forensics, risk analysis, live charting, and trading insights exclusively for the Base network.
 
-Built with **LangGraph** and the **Warden Agent Kit**, it represents the next generation of "vibe coding" — robust, secure, and incredibly fast.
+Designed for the **OpenGradient** ecosystem of decentralized intelligence, this agent represents the next generation of "vibe coding" — robust, secure, and incredibly fast.
 
 ---
 
-## ✨ Why Terminal AI?
+## ✨ Visual Intelligence & Forensics
 
-Unlike simple chatbots, Terminal AI is a **Forensic Tool**. It doesn't just read prices; it analyzes on-chain behavior.
+Unlike simple chatbots, this tool doesn't just read prices; it analyzes on-chain behavior in real-time.
 
 *   **🛡️ Security First:** Instant `Risk Analysis` scans contracts for honeypots and rug pulls before you trade.
 *   **🐋 Whale Watch:** Live monitoring of large transactions (>$500). See what the "smart money" is doing in real-time.
-*   **📈 Visual Intelligence:** Generate instant ASCII price charts for any token directly in the terminal.
+*   **📈 Live Terminal Charts:** Generate instant ASCII price charts for **ETH, BTC, SOL** and any **Base Token** directly in the command line.
 *   **⚡ Speed:** Optimized for the Base L2 network — cheap gas, fast data, instant insights.
 *   **🌉 Onboarding:** Direct access to the best bridges (Relay, Jumper, deBridge) to get funds onto Base in seconds.
 
@@ -26,12 +25,12 @@ Unlike simple chatbots, Terminal AI is a **Forensic Tool**. It doesn't just read
 
 ## 🚀 Features & Commands
 
-Interact with Terminal AI using natural language or these specific commands:
+Interact with the agent using natural language or these specific commands:
 
 | Feature | Command / Trigger | Description |
 | :--- | :--- | :--- |
 | **🔥 Market Trends** | `Trend` / `Hot` | Shows top trending tokens on Base live. |
-| **📈 Live Charts** | `Chart <token>` | **New:** Live ASCII price charts (ETH, BTC, SOL & Base). |
+| **📈 Live Charts** | `Chart <token>` | **Real-Time:** ASCII price charts (e.g., `Chart ETH`, `Chart BRETT`). |
 | **🚀 Top Gainers** | `Gainers` / `Top` | Lists the biggest 24h movers. |
 | **🛡️ Risk Scanner** | `Risk <token>` | Performs a security audit (Honeypot, liquidity, verified contract). |
 | **🐋 Whale Watch** | `Whale <token>` | **Killer Feature:** Tracks live large buy/sell orders (>$500). |
@@ -39,18 +38,17 @@ Interact with Terminal AI using natural language or these specific commands:
 | **⛽ Gas Station** | `Gas` | Real-time Base gas fees & swap cost estimates. |
 | **🌾 Yield Search** | `Yield` | Finds the best APY farming pools on Base. |
 | **🌐 Warden Info** | `Menu` | Official Warden Protocol resources (Discord, Link3). |
-| **🌉 Bridge** | `Bridge` | Links to top bridges (Relay, Jumper, deBridge). |
-| **🎁 Airdrops** | `Airdrops` | Link to potential airdrop dashboards & tasks. |
 
 ---
 
-## 🛠️ Tech Stack (Warden Compliant)
+## 🛠️ Tech Stack
 
-Terminal AI is built strictly adhering to the **Warden Protocol** standards for the Agent Developer Incentive Program.
+Built strictly adhering to the **Warden Protocol** standards for the Agent Developer Incentive Program.
 
 *   **Orchestration:** [LangGraph](https://langchain-ai.github.io/langgraph/) (Stateful, multi-turn agent logic)
 *   **Blockchain SDK:** `@wardenprotocol/warden-agent-kit-core`
 *   **LLM Integration:** `@wardenprotocol/warden-langchain`
+*   **Frontend:** Next.js 16 + Tailwind CSS 4 (Terminal UI)
 *   **Network:** Base (EVM)
 
 ---
@@ -66,8 +64,8 @@ Terminal AI is built strictly adhering to the **Warden Protocol** standards for 
 
 1.  **Clone the Repository**
     ```bash
-    git clone https://github.com/ogeth777/TERMINALAI.git
-    cd warden-bot
+    git clone https://github.com/ogeth777/OpenGradient.git
+    cd OpenGradient
     ```
 
 2.  **Install Dependencies**
@@ -89,11 +87,12 @@ Terminal AI is built strictly adhering to the **Warden Protocol** standards for 
 
 ---
 
-## 🔮 Future Roadmap
+## 🔮 Roadmap
 
-*   **Autonomous Swaps:** Agent-driven trading execution (Coming Soon).
+*   **Autonomous Swaps:** Agent-driven trading execution.
 *   **Multi-Chain Support:** Expanding forensics to Arbitrum and Solana.
 *   **Automated Alerts:** Push notifications for whale movements.
+*   **OpenGradient Integration:** Advanced decentralized compute for risk modeling.
 
 ---
 
