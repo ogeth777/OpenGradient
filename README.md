@@ -6,7 +6,7 @@
 
 ![Terminal AI Banner](./LOGO.jpg)
 
-**Terminal AI** is a professional-grade autonomous agent built for the **Warden Agent Hub**. It cuts through the market noise to provide real-time forensics, risk analysis, and trading insights exclusively for the Base network.
+**Terminal AI** is a professional-grade autonomous agent built for the **Warden Agent Hub**. It cuts through the market noise to provide real-time forensics, risk analysis, live charting, and trading insights exclusively for the Base network.
 
 Built with **LangGraph** and the **Warden Agent Kit**, it represents the next generation of "vibe coding" — robust, secure, and incredibly fast.
 
@@ -18,6 +18,7 @@ Unlike simple chatbots, Terminal AI is a **Forensic Tool**. It doesn't just read
 
 *   **🛡️ Security First:** Instant `Risk Analysis` scans contracts for honeypots and rug pulls before you trade.
 *   **🐋 Whale Watch:** Live monitoring of large transactions (>$500). See what the "smart money" is doing in real-time.
+*   **📈 Visual Intelligence:** Generate instant ASCII price charts for any token directly in the terminal.
 *   **⚡ Speed:** Optimized for the Base L2 network — cheap gas, fast data, instant insights.
 *   **🌉 Onboarding:** Direct access to the best bridges (Relay, Jumper, deBridge) to get funds onto Base in seconds.
 
