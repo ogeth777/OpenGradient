@@ -41,34 +41,6 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
       }
   }
 
-  if (lowerPrompt === "gem" || lowerPrompt.includes("gem hunter")) {
-      const chain = lowerPrompt.includes("solana") ? "solana" : "base";
-      try {
-          const rawResult = await terminal_gem_hunter.invoke({ chain });
-          const data = JSON.parse(rawResult);
-
-          if (data.error) return `❌ ${data.error}`;
-
-          let output = `💎 **HIDDEN GEM HUNTER (${chain.toUpperCase()})**\n`;
-          output += `*Criteria: Market Cap < $5M, Volume > $5k, High Momentum*\n\n`;
-
-          data.tokens.forEach((t: any, i: number) => {
-              const mcap = t.market_cap ? (t.market_cap / 1000).toFixed(1) + "k" : "N/A";
-              const vol = t.volume_24h ? (t.volume_24h / 1000).toFixed(1) + "k" : "N/A";
-              const changeEmoji = t.change_24h >= 0 ? "🟢" : "🔴";
-              
-              output += `**${i+1}. ${t.name}** ($${t.symbol})\n`;
-              output += `   💵 Price: $${t.price} | 🧢 MC: $${mcap}\n`;
-              output += `   📊 Vol: $${vol} | ${changeEmoji} 24h: ${t.change_24h}%\n`;
-              output += `   🔗 [DexScreener](${t.url})\n\n`;
-          });
-
-          return output;
-      } catch (e: any) {
-          return `Error fetching gems: ${e.message}`;
-      }
-  }
-
   if (lowerPrompt.startsWith("chart") || lowerPrompt.startsWith("graph")) {
       const token = lowerPrompt.replace("chart", "").replace("graph", "").trim();
       if (!token) return "⚠️ Please specify a token. Example: `Chart ETH` or `Chart 0x...`";
@@ -102,7 +74,6 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Risk [token]**: Security scan (Honeypot/Rug check)
 - **Whale [token]**: Live large transaction tracking 🐋
 - **Yield**: Best farming pools on Base
-- **Gem**: Find hidden gems (Low Cap/High Volume) 💎
 - **Chart [token]**: ASCII Price Chart (24h) 📈
    *(Try: Chart ETH, Chart BTC, Chart SOL)*
 - **Gas**: Real-time network gas price & swap cost
