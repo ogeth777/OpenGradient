@@ -105,7 +105,6 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Gem**: Find hidden gems (Low Cap/High Volume) 💎
 - **Chart [token]**: ASCII Price Chart (24h) 📈
    *(Try: Chart ETH, Chart BTC, Chart SOL)*
-- **Battle [A] [B]**: Compare two tokens ⚔️
 - **Gas**: Real-time network gas price & swap cost
 
 **🌉 CROSS-CHAIN**
