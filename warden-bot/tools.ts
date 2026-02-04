@@ -701,7 +701,70 @@ export async function fetchGasPrice(chain: string = "base") {
     }
 }
 
+export async function fetchGemTokens(chain: string = "base") {
+    try {
+        // Reuse trending logic to get a broad list of active tokens
+        // For gems, we want High Volume / Low Cap from DexScreener
+        const response = await axios.get(`https://api.dexscreener.com/latest/dex/search?q=${chain}`);
+        const pairs = response.data.pairs || [];
+
+        // Filter and Score
+        const gems = pairs
+            .filter((p: any) => 
+                p.chainId === chain.toLowerCase() &&
+                p.marketCap > 50000 && // Min $50k Cap (avoid dead coins)
+                p.marketCap < 5000000 && // Max $5M Cap (Micro caps)
+                p.liquidity?.usd > 10000 && // Min $10k Liquidity
+                p.volume?.h24 > 5000 // Min $5k Volume
+            )
+            .map((p: any) => {
+                const volToMcap = (p.volume?.h24 || 0) / (p.marketCap || 1);
+                return {
+                    name: p.baseToken.name,
+                    symbol: p.baseToken.symbol,
+                    address: p.baseToken.address,
+                    price: p.priceUsd,
+                    market_cap: p.marketCap,
+                    volume_24h: p.volume?.h24,
+                    liquidity: p.liquidity?.usd,
+                    vol_mcap_ratio: volToMcap,
+                    change_24h: p.priceChange?.h24 || 0,
+                    url: p.url
+                };
+            })
+            .sort((a: any, b: any) => b.vol_mcap_ratio - a.vol_mcap_ratio) // Sort by Momentum (Vol/MCap)
+            .slice(0, 10);
+
+        return { source: "DexScreener Gem Hunter", tokens: gems };
+
+    } catch (error) {
+        console.error("Error fetching gems:", error);
+        throw new Error(`Error fetching gems: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+}
+
 // --- LangChain Tools Wrappers ---
+
+export const terminal_gem_hunter = tool(
+  async ({ chain = "base" }: { chain?: string }) => {
+    try {
+      const data = await fetchGemTokens(chain);
+      if (data.tokens.length === 0) {
+          return JSON.stringify({ error: "No hidden gems found matching criteria (MCap < $5M, Vol > $5k)." });
+      }
+      return JSON.stringify(data);
+    } catch (e: any) {
+      return JSON.stringify({ error: e.message });
+    }
+  },
+  {
+    name: "fetch_gem_tokens",
+    description: "Finds 'hidden gems' (undervalued tokens with high volume/liquidity ratio) on a specific chain.",
+    schema: z.object({
+      chain: z.string().optional().describe("The blockchain network (default: base)."),
+    }),
+  }
+);
 
 export const terminal_trending = tool(
   async ({ chain }) => {
@@ -1171,3 +1234,111 @@ export const terminal_bridge = tool(async () => {
   name: "terminal_bridge",
   description: "Returns a list of top bridges to Base network (Relay, Jumper, deBridge)."
 });
+
+// --- ASCII Chart Tool ---
+
+function generateAsciiChart(data: number[], height: number = 10): string {
+    if (!data || data.length === 0) return "No data available.";
+    
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min;
+    
+    if (range === 0) return "Price unchanged (Flat line).";
+    
+    // Resample data to fit width (approx 40-50 chars)
+    const width = Math.min(data.length, 50);
+    const blockSize = Math.floor(data.length / width);
+    const sampled = [];
+    for (let i = 0; i < width; i++) {
+        sampled.push(data[Math.min(i * blockSize, data.length - 1)]);
+    }
+    
+    let output = "";
+    
+    for (let h = height; h >= 0; h--) {
+        const threshold = min + (h / height) * range;
+        let row = `${threshold.toFixed(4).padStart(10)} | `;
+        
+        for (let i = 0; i < sampled.length; i++) {
+            const p = sampled[i];
+            // Normalize p to 0..height
+            const pNorm = ((p - min) / range) * height;
+            
+            if (Math.round(pNorm) === h) {
+                row += "*";
+            } else {
+                row += " ";
+            }
+        }
+        output += row + "\n";
+    }
+    
+    output += " ".repeat(12) + "└" + "-".repeat(sampled.length) + "\n";
+    
+    return output;
+}
+
+export async function fetchTokenChartData(token: string, chain: string = "base", days: string = "1") {
+     // Resolve address
+     let address = token;
+     if (!token.startsWith("0x")) {
+         address = await resolveTokenAddress(token, chain);
+     }
+     
+     if (!address || address === "N/A") {
+         throw new Error(`Could not resolve address for ${token}`);
+     }
+     
+     // CoinGecko Platform ID
+     const platformMap: Record<string, string> = {
+          "base": "base",
+          "ethereum": "ethereum",
+          "solana": "solana",
+          "bsc": "binance-smart-chain",
+          "arbitrum": "arbitrum-one",
+          "optimism": "optimistic-ethereum",
+          "polygon": "polygon-pos"
+    };
+    const platform = platformMap[chain.toLowerCase()] || "base";
+    
+    try {
+        const url = `https://api.coingecko.com/api/v3/coins/${platform}/contract/${address}/market_chart/?vs_currency=usd&days=${days}`;
+        const res = await axios.get(url);
+        const prices = res.data.prices.map((p: any) => p[1]);
+        
+        return {
+            symbol: token.toUpperCase(),
+            prices: prices,
+            current: prices[prices.length - 1],
+            change: ((prices[prices.length - 1] - prices[0]) / prices[0]) * 100
+        };
+    } catch (e: any) {
+        throw new Error("Failed to fetch chart data (CoinGecko rate limit or invalid token).");
+    }
+}
+
+export const terminal_chart = tool(
+    async ({ token, chain = "base", days = "1" }) => {
+        try {
+            const data = await fetchTokenChartData(token, chain, days);
+            const ascii = generateAsciiChart(data.prices);
+            
+            return `📈 **PRICE CHART: ${data.symbol} (${chain.toUpperCase()})**\n` +
+                   `💵 Price: $${data.current}\n` +
+                   `📊 Change (${days}d): ${data.change.toFixed(2)}%\n\n` +
+                   `\`\`\`\n${ascii}\n\`\`\``;
+        } catch (e: any) {
+            return `❌ Chart Error: ${e.message}`;
+        }
+    },
+    {
+        name: "generate_token_chart",
+        description: "Generates an ASCII price chart for a token (24h history).",
+        schema: z.object({
+            token: z.string().describe("Token symbol or address"),
+            chain: z.string().optional().describe("Chain (base, solana, eth)"),
+            days: z.string().optional().describe("Days of history (default 1)")
+        })
+    }
+);
