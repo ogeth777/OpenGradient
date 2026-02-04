@@ -36,6 +36,9 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
           });
 
           return output;
+      } catch (e: any) {
+          return `Error watching whales: ${e.message}`;
+      }
   }
 
   if (lowerPrompt === "gem" || lowerPrompt.includes("gem hunter")) {
