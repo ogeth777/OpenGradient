@@ -74,7 +74,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **Risk [token]**: Security scan (Honeypot/Rug check)
 - **Whale [token]**: Live large transaction tracking 🐋
 - **Yield**: Best farming pools on Base
-- **Chart [token]**: ASCII Price Chart (24h) 📈
+- **Chart [token]**: Live ASCII Price Chart 📈
    *(Try: Chart ETH, Chart BTC, Chart SOL)*
 - **Gas**: Real-time network gas price & swap cost
 
