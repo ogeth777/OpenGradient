@@ -1280,10 +1280,42 @@ function generateAsciiChart(data: number[], height: number = 10): string {
 }
 
 export async function fetchTokenChartData(token: string, chain: string = "base", days: string = "1") {
-     // Resolve address
+    // 1. Try to map simple symbols to CoinGecko IDs directly (Native Coins)
+    const NATIVE_IDS: Record<string, string> = {
+        "ETH": "ethereum",
+        "BTC": "bitcoin",
+        "SOL": "solana",
+        "BNB": "binancecoin",
+        "AVAX": "avalanche-2",
+        "MATIC": "matic-network"
+    };
+
+    if (NATIVE_IDS[token.toUpperCase()]) {
+        try {
+            const coinId = NATIVE_IDS[token.toUpperCase()];
+            const url = `https://api.coingecko.com/api/v3/coins/${coinId}/market_chart?vs_currency=usd&days=${days}`;
+            const res = await axios.get(url);
+            const prices = res.data.prices.map((p: any) => p[1]);
+            return {
+                symbol: token.toUpperCase(),
+                prices: prices,
+                current: prices[prices.length - 1],
+                change: ((prices[prices.length - 1] - prices[0]) / prices[0]) * 100
+            };
+        } catch (e) {
+            console.log(`Native chart fetch failed for ${token}, trying contract fallback...`);
+        }
+    }
+
+     // 2. Resolve address for tokens
      let address = token;
      if (!token.startsWith("0x")) {
          address = await resolveTokenAddress(token, chain);
+     }
+     
+     // Handle "ETH" return from resolveTokenAddress on Base -> Use WETH
+     if (address === "ETH" && chain.toLowerCase() === "base") {
+         address = "0x4200000000000000000000000000000000000006";
      }
      
      if (!address || address === "N/A") {
