@@ -11,8 +11,25 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
   const lowerPrompt = userPrompt.toLowerCase().trim();
 
   // 0.1 Greeting / Menu Interception
-          const greetings = ["hello", "hi", "hey", "start", "menu", "help", "commands", "привет", "меню"];
-          if (lowerPrompt.startsWith("whale")) {
+  const greetings = ["hello", "hi", "hey", "start", "menu", "help", "commands", "привет", "меню"];
+  
+  // WARDEN TOKEN COMMAND
+  if (lowerPrompt === "warden" || lowerPrompt === "ward" || lowerPrompt === "token") {
+      return \`**🪙 WARDEN TOKEN ($WARD)**
+
+📝 **Contract (Base):**
+\`0x6dc200b21894af4660b549b678ea8df22bf7cfac\`
+
+📊 **Market Data:**
+- [CoinMarketCap](https://coinmarketcap.com/currencies/warden/)
+- [DexScreener](https://dexscreener.com/base/0x6dc200b21894af4660b549b678ea8df22bf7cfac)
+
+🔍 **Actions:**
+- Type \`Risk 0x6dc200b21894af4660b549b678ea8df22bf7cfac\` to scan security.
+- Type \`Chart 0x6dc200b21894af4660b549b678ea8df22bf7cfac\` for live chart.\`;
+  }
+
+  if (lowerPrompt.startsWith("whale")) {
       const token = lowerPrompt.replace("whale", "").trim();
       if (!token) return "⚠️ Please specify a token. Example: `Whale TOSHI`";
       
@@ -88,6 +105,7 @@ export async function processAgentRequest(userPrompt: string, userAddress?: stri
 - **DeBank [address]**: Track any EVM portfolio (Assets, DeFi, History)
 
 **🌐 WARDEN PROTOCOL**
+- **Warden**: 🪙 Get $WARD Token Info & Contract
 - [Official Website](https://wardenprotocol.org/)
 - [Discord Community](https://discord.com/invite/wardenprotocol)
 - [Link3 Profile](https://link3.to/wardenprotocol)
