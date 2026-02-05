@@ -1,7 +1,11 @@
 {
   "name": "opengradient",
   "version": "1.0.0",
-  "description": "",
+  "description": "OpenGradient: The Decentralized AI Intelligence Layer on Base (MemSync, BitQuant, Twin.fun). Powered by Warden Protocol.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ogeth777/OpenGradient.git"
+  },
   "main": "index.js",
   "scripts": {
     "dev": "next dev",
