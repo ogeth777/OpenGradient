@@ -61,7 +61,7 @@ export default function Home() {
                 </p>
 
                 <a 
-                    href="https://www.opengradient.ai/memsync"
+                    href="https://memsync.ai"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:bg-white/10 hover:border-purple-500/50 transition-all flex items-center justify-center gap-2"
@@ -90,7 +90,7 @@ export default function Home() {
                 </p>
 
                 <a 
-                    href="http://Twin.fun"
+                    href="https://Twin.fun"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:bg-white/10 hover:border-pink-500/50 transition-all flex items-center justify-center gap-2"
@@ -119,7 +119,7 @@ export default function Home() {
                 </p>
 
                 <a 
-                    href="https://github.com/OpenGradient/BitQuant"
+                    href="https://bitquant.io"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:bg-white/10 hover:border-cyan-500/50 transition-all flex items-center justify-center gap-2"
@@ -179,13 +179,13 @@ export default function Home() {
             </div>
             
             <div className="flex gap-8 text-sm text-gray-500 mb-8">
-                <a href="https://www.opengradient.ai/" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Website</a>
+                <a href="https://opengradient.ai" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Website</a>
                 <a href="https://twitter.com/OpenGradient" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Twitter / X</a>
-                <a href="https://github.com/ogeth777/OpenGradient" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">GitHub</a>
+                <a href="https://github.com/OpenGradient" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">GitHub</a>
             </div>
             
             <p className="text-xs text-gray-600">
-                Made by <a href="https://twitter.com/OG_Cryptooo" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline">@OG_Cryptooo</a> | Built on <a href="https://twitter.com/OpenGradient" target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:underline">@OpenGradient</a> 🚀 (v1.1)
+                Made by <a href="https://twitter.com/OG_Cryptooo" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline">@OG_Cryptooo</a> | Built on <a href="https://twitter.com/OpenGradient" target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:underline">@OpenGradient</a> 🚀 (v1.2)
             </p>
         </footer>
 
