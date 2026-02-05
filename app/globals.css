@@ -3,10 +3,11 @@
 @theme {
   --font-sans: 'Inter', system-ui, sans-serif;
   --color-background: #0f0f1a;
+  --color-foreground: #ffffff;
 }
 
 body {
   background-color: var(--color-background);
-  color: white;
+  color: var(--color-foreground);
   font-family: var(--font-sans);
 }

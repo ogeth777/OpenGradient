@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         response = `**FATAL ERROR**\n\n${agentError.message || "Unknown system failure."}`;
     }
     
-    const res = NextResponse.json({ response });
+    const res = NextResponse.json({ output: response });
     return setCorsHeaders(res);
   } catch (error) {
     console.error('API Error:', error);
