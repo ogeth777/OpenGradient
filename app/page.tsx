@@ -4,7 +4,7 @@ import { useState } from "react";
 import NetworkBackground from "./components/NetworkBackground";
 import MouseGlow from "./components/MouseGlow";
 import VideoModal from "./components/VideoModal";
-import { ArrowRight, Play, ExternalLink, Zap, Brain, Users } from "lucide-react";
+import { ExternalLink, Zap, Brain, Users, BarChart3, ChevronDown } from "lucide-react";
 
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -15,145 +15,166 @@ export default function Home() {
     setIsModalOpen(true);
   };
 
-  const scrollToProjects = () => {
-    const element = document.getElementById('projects');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
-    <main className="relative min-h-screen w-full bg-[#0f0f1a] text-white selection:bg-cyan-500/30">
+    <main className="relative min-h-screen w-full bg-[#0b0b15] text-white selection:bg-cyan-500/30 font-sans">
       <NetworkBackground />
       <MouseGlow />
-      
-      {/* Hero Section */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 text-center">
+
+      {/* Main Content Container */}
+      <div className="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         
-        <div className="mb-8">
-            <img src="/logo.png" alt="OpenGradient Logo" className="h-24 w-24 rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.3)]" />
+        {/* Header / Intro Section */}
+        <div className="flex flex-col items-center text-center mt-10 mb-20">
+            <div className="mb-6 animate-bounce text-cyan-400">
+                <ChevronDown className="h-8 w-8" />
+            </div>
+            
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                What is OpenGradient?
+            </h1>
+            
+            <p className="max-w-3xl text-lg md:text-xl text-gray-400 leading-relaxed">
+                OpenGradient is the leading decentralized network for verifiable AI computing. It builds the infrastructure for "User Owned AI" secure, open, and auditable. Unlike traditional black box models, OpenGradient ensures every inference is proven on chain, making intelligence transparent, tamper proof, and truly yours.
+            </p>
         </div>
 
-        <h1 className="mb-6 max-w-4xl text-5xl font-bold tracking-tight md:text-7xl lg:text-8xl">
-          <span className="bg-gradient-to-r from-white via-cyan-100 to-cyan-400 bg-clip-text text-transparent">
-            OpenGradient
-          </span>
-        </h1>
-
-        <p className="mb-2 max-w-2xl text-xl text-gray-400 md:text-2xl font-light">
-          The Future of AI on Blockchain, Simplified
-        </p>
-
-        <p className="mb-10 max-w-2xl text-md text-gray-500">
-          Learn what MemSync, BitQuant, and Twin.fun are in 5 minutes.
-        </p>
-
-        <div className="flex flex-col gap-4 sm:flex-row">
-           <button 
-             onClick={scrollToProjects}
-             className="group relative overflow-hidden rounded-full border border-cyan-500/30 bg-cyan-500/10 px-10 py-3 font-semibold text-cyan-400 transition-all hover:bg-cyan-500/20 hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] hover:border-cyan-500/60"
-           >
-            <span className="relative z-10 flex items-center gap-2">
-              Explore Ecosystem <ArrowRight className="h-4 w-4" />
-            </span>
-          </button>
-        </div>
-      </div>
-
-      {/* Projects Section */}
-      <div id="projects" className="relative z-10 flex flex-col items-center py-20 px-4 space-y-24 max-w-7xl mx-auto">
-        
-        {/* MemSync */}
-        <div className="flex flex-col lg:flex-row items-center gap-12 w-full">
-            <div className="flex-1 space-y-6 text-left">
-                <div className="flex items-center gap-3 text-cyan-400">
+        {/* Cards Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
+            
+            {/* MemSync Card */}
+            <div className="group relative flex flex-col rounded-3xl border border-white/10 bg-[#12121f] p-6 hover:border-purple-500/50 transition-all duration-300">
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400">
                     <Brain className="h-6 w-6" />
-                    <span className="text-lg font-mono">MemSync AI</span>
                 </div>
-                <h2 className="text-4xl md:text-5xl font-bold text-white">Your AI's Second Brain</h2>
-                <p className="text-gray-400 text-lg leading-relaxed">
-                    MemSync connects your AI agents to a decentralized knowledge base. It allows them to remember past interactions, learn from new data, and share insights across different applications securely on-chain.
+                <h3 className="text-2xl font-bold text-white">MemSync</h3>
+                <p className="text-xs font-bold tracking-wider text-purple-400 uppercase mb-4">YOUR ETERNAL MEMORY FOR ANY AI</p>
+                
+                <div className="mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/50 aspect-video relative group-hover:border-purple-500/50 transition-all">
+                     <video src="/MemSync.mp4" className="w-full h-full object-cover opacity-80" autoPlay muted loop playsInline />
+                </div>
+
+                <p className="text-sm text-gray-400 mb-6 leading-relaxed flex-grow">
+                    Imagine if ChatGPT, Claude, or any other AI remembered EVERYTHING about you: what you like, past conversations. MemSync is like a memory cloud that travels with you across different AIs. Everything is encrypted and yours alone.
                 </p>
+
                 <button 
                     onClick={() => openVideo("/MemSync.mp4")}
-                    className="flex items-center gap-2 text-white bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl transition-all border border-white/10 hover:border-cyan-500/50"
+                    className="w-full py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:bg-white/10 hover:border-purple-500/50 transition-all flex items-center justify-center gap-2"
                 >
-                    <Play className="h-5 w-5 fill-current" /> Watch Demo
+                    Try It <ExternalLink className="h-4 w-4" />
                 </button>
             </div>
-            <div className="flex-1 w-full relative group cursor-pointer" onClick={() => openVideo("/MemSync.mp4")}>
-                <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full opacity-20 group-hover:opacity-40 transition-opacity" />
-                <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/50 aspect-video flex items-center justify-center group-hover:border-cyan-500/50 transition-all">
-                     <div className="h-16 w-16 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                        <Play className="h-8 w-8 text-white fill-white ml-1" />
-                     </div>
-                     <p className="absolute bottom-4 text-sm text-gray-400">Click to watch MemSync Demo</p>
-                </div>
-            </div>
-        </div>
 
-        {/* BitQuant */}
-        <div className="flex flex-col lg:flex-row-reverse items-center gap-12 w-full">
-            <div className="flex-1 space-y-6 text-left lg:text-right">
-                <div className="flex items-center gap-3 text-cyan-400 lg:justify-end">
-                    <Zap className="h-6 w-6" />
-                    <span className="text-lg font-mono">BitQuant</span>
-                </div>
-                <h2 className="text-4xl md:text-5xl font-bold text-white">Institutional-Grade Analytics</h2>
-                <p className="text-gray-400 text-lg leading-relaxed">
-                    Real-time forensics, risk analysis, and market intelligence for the Base network. BitQuant provides the data you need to trade smarter, safer, and faster than the competition.
-                </p>
-                <div className="flex lg:justify-end">
-                    <button 
-                        onClick={() => openVideo("/BITQUAN.mp4")}
-                        className="flex items-center gap-2 text-white bg-white/10 hover:bg-white/20 px-6 py-3 rounded-xl transition-all border border-white/10 hover:border-cyan-500/50"
-                    >
-                        <Play className="h-5 w-5 fill-current" /> Watch Demo
-                    </button>
-                </div>
-            </div>
-            <div className="flex-1 w-full relative group cursor-pointer" onClick={() => openVideo("/BITQUAN.mp4")}>
-                <div className="absolute inset-0 bg-purple-500/20 blur-3xl rounded-full opacity-20 group-hover:opacity-40 transition-opacity" />
-                <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/50 aspect-video flex items-center justify-center group-hover:border-purple-500/50 transition-all">
-                     <div className="h-16 w-16 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                        <Play className="h-8 w-8 text-white fill-white ml-1" />
-                     </div>
-                     <p className="absolute bottom-4 text-sm text-gray-400">Click to watch BitQuant Demo</p>
-                </div>
-            </div>
-        </div>
-
-        {/* Twin.fun */}
-        <div className="flex flex-col lg:flex-row items-center gap-12 w-full pb-20">
-            <div className="flex-1 space-y-6 text-left">
-                <div className="flex items-center gap-3 text-cyan-400">
+            {/* Twin.fun Card */}
+            <div className="group relative flex flex-col rounded-3xl border border-white/10 bg-[#12121f] p-6 hover:border-pink-500/50 transition-all duration-300">
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-pink-500/20 text-pink-400">
                     <Users className="h-6 w-6" />
-                    <span className="text-lg font-mono">Twin.fun</span>
                 </div>
-                <h2 className="text-4xl md:text-5xl font-bold text-white">Social AI Agents</h2>
-                <p className="text-gray-400 text-lg leading-relaxed">
-                    Create, customize, and deploy social AI twins that can interact, learn, and grow with your community. Twin.fun makes AI social, accessible, and fun for everyone.
+                <h3 className="text-2xl font-bold text-white">Twin.fun</h3>
+                <p className="text-xs font-bold tracking-wider text-pink-400 uppercase mb-4">TRADE DIGITAL MINDS</p>
+                
+                <div className="mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/50 aspect-video relative group-hover:border-pink-500/50 transition-all">
+                     <img src="/Twin.fun.PNG" alt="Twin.fun" className="w-full h-full object-cover opacity-90 hover:scale-105 transition-transform duration-500" />
+                </div>
+
+                <p className="text-sm text-gray-400 mb-6 leading-relaxed flex-grow">
+                    Trade onchain keys for AI digital twins modeled after real people's ideas. Key value grows with demand via a transparent bonding curve. Unlock chat, debate, and pitch access to these AI minds. Collaborate, learn, and earn from specialized intelligence.
                 </p>
+
                 <a 
-                    href="http://Twin.fun" 
-                    target="_blank" 
+                    href="http://Twin.fun"
+                    target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold text-lg hover:underline"
+                    className="w-full py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:bg-white/10 hover:border-pink-500/50 transition-all flex items-center justify-center gap-2"
                 >
-                    Visit Twin.fun <ExternalLink className="h-4 w-4" />
+                    Try It <ExternalLink className="h-4 w-4" />
                 </a>
             </div>
-            <div className="flex-1 w-full relative group">
-                <div className="absolute inset-0 bg-pink-500/20 blur-3xl rounded-full opacity-20 group-hover:opacity-40 transition-opacity" />
-                <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/50 aspect-video flex items-center justify-center group-hover:border-pink-500/50 transition-all">
-                     <img src="/Twin.fun.PNG" alt="Twin.fun Interface" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+
+            {/* BitQuant Card */}
+            <div className="group relative flex flex-col rounded-3xl border border-white/10 bg-[#12121f] p-6 hover:border-cyan-500/50 transition-all duration-300">
+                <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400">
+                    <BarChart3 className="h-6 w-6" />
+                </div>
+                <h3 className="text-2xl font-bold text-white">BitQuant</h3>
+                <p className="text-xs font-bold tracking-wider text-cyan-400 uppercase mb-4">YOUR PERSONAL AI QUANT</p>
+                
+                <div className="mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/50 aspect-video relative group-hover:border-cyan-500/50 transition-all">
+                     <video src="/BITQUAN.mp4" className="w-full h-full object-cover opacity-80" autoPlay muted loop playsInline />
+                </div>
+
+                <p className="text-sm text-gray-400 mb-6 leading-relaxed flex-grow">
+                    Your personal AI Quant for DeFi. BitQuant leverages advanced machine learning and real time on chain data to democratize quantitative analysis. Simply ask in plain English 'Analyze token risk' or 'Optimize my portfolio' to get institutional grade insights, charts, and data driven strategies instantly.
+                </p>
+
+                <button 
+                    onClick={() => openVideo("/BITQUAN.mp4")}
+                    className="w-full py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:bg-white/10 hover:border-cyan-500/50 transition-all flex items-center justify-center gap-2"
+                >
+                    Try It <ExternalLink className="h-4 w-4" />
+                </button>
+            </div>
+
+        </div>
+
+        {/* Why is this important Section */}
+        <div className="mb-24">
+            <h2 className="text-3xl font-bold text-center text-white mb-12">Why is this important for beginners?</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-center gap-4 rounded-2xl bg-[#161626] p-6 border border-white/5 hover:border-green-500/30 transition-colors">
+                    <div className="h-3 w-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] shrink-0"></div>
+                    <span className="text-gray-300 font-medium">Free tools to start in Web3 and AI</span>
+                </div>
+                <div className="flex items-center gap-4 rounded-2xl bg-[#161626] p-6 border border-white/5 hover:border-green-500/30 transition-colors">
+                    <div className="h-3 w-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] shrink-0"></div>
+                    <span className="text-gray-300 font-medium">Your personal AI Quant for DeFi with institutional-grade insights</span>
+                </div>
+                <div className="flex items-center gap-4 rounded-2xl bg-[#161626] p-6 border border-white/5 hover:border-green-500/30 transition-colors">
+                    <div className="h-3 w-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] shrink-0"></div>
+                    <span className="text-gray-300 font-medium">Control your attention and memory</span>
+                </div>
+                <div className="flex items-center gap-4 rounded-2xl bg-[#161626] p-6 border border-white/5 hover:border-green-500/30 transition-colors">
+                    <div className="h-3 w-3 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] shrink-0"></div>
+                    <span className="text-gray-300 font-medium">Everything is open, transparent, and secure thanks to blockchain</span>
                 </div>
             </div>
         </div>
 
-        <div className="text-center text-gray-600 text-sm pb-10">
-            <p>Powered by OpenGradient • Built on Base</p>
+        {/* Still have questions Section */}
+        <div className="relative mb-24 overflow-hidden rounded-3xl bg-gradient-to-r from-[#1a1a2e] to-[#161626] p-10 border border-white/10 text-center">
+            <div className="relative z-10">
+                <h2 className="text-2xl font-bold text-white mb-4">Still have questions?</h2>
+                <p className="text-gray-400 max-w-2xl mx-auto mb-8">
+                    If something isn't clear or you want to learn more, join the official community! Ask questions, get help, and meet other beginners.
+                </p>
+                <a 
+                    href="https://discord.gg/opengradient" 
+                    target="_blank"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[#5865F2] px-8 py-3 font-semibold text-white transition-all hover:bg-[#4752c4] hover:shadow-lg hover:shadow-[#5865F2]/30"
+                >
+                     Join OpenGradient Discord
+                </a>
+            </div>
         </div>
+
+        {/* Footer */}
+        <footer className="border-t border-white/5 pt-12 pb-8 flex flex-col items-center">
+            <div className="flex items-center gap-3 mb-6">
+                <img src="/logo.png" alt="OpenGradient" className="h-8 w-8" />
+                <span className="text-lg font-bold text-white">OpenGradient</span>
+            </div>
+            
+            <div className="flex gap-8 text-sm text-gray-500 mb-8">
+                <a href="#" className="hover:text-cyan-400 transition-colors">Website</a>
+                <a href="#" className="hover:text-cyan-400 transition-colors">Twitter / X</a>
+                <a href="https://github.com/ogeth777/OpenGradient" className="hover:text-cyan-400 transition-colors">GitHub</a>
+            </div>
+            
+            <p className="text-xs text-gray-600">
+                Made by <span className="text-cyan-500">@OG_Cryptooo</span> | Built on <span className="text-purple-500">@OpenGradient</span> 🚀
+            </p>
+        </footer>
 
       </div>
 
