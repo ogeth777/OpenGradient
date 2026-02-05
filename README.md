@@ -1,126 +1,64 @@
-# 🌌 OpenGradient
+# OpenGradient
 
-> **The Decentralized AI Intelligence Layer on Base 🔵**
-> *Building the Future of AI on Blockchain, Simplified.*
+**The Decentralized AI Intelligence Layer on Base** 🔵  
+*Building the Future of AI on Blockchain, Simplified.*
 
-![OpenGradient Banner](https://img.shields.io/badge/Status-Active-success) ![License](https://img.shields.io/badge/License-MIT-blue) ![Network](https://img.shields.io/badge/Network-Base_L2-0052FF)
-
-**OpenGradient** is a comprehensive ecosystem of decentralized AI products designed to bridge the gap between complex blockchain technology and user-friendly intelligence. We provide a suite of tools that empower users with institutional-grade analytics, social AI twins, and autonomous agents.
+OpenGradient is the leading decentralized network for verifiable AI computing. It builds the infrastructure for **"User Owned AI"** — secure, open, and auditable. Unlike traditional black box models, OpenGradient ensures every inference is proven on-chain, making intelligence transparent, tamper-proof, and truly yours.
 
 ---
 
 ## 🌐 OpenGradient Ecosystem
 
-Our platform features three core pillars:
+Our platform features three core pillars designed to bridge the gap between complex blockchain technology and user-friendly intelligence.
 
-*   **🧠 MemSync AI:** The "Second Brain" for your AI agents. Connects agents to a decentralized knowledge base to remember, learn, and share insights securely on-chain.
-*   **⚡ BitQuant:** Institutional-grade analytics. Real-time forensics, risk analysis, and market intelligence for the Base network.
-*   **👥 Twin.fun:** Social AI Agents. Create and customize AI twins that interact and grow with your community.
+### 🧠 [MemSync](https://memsync.ai)
+**YOUR ETERNAL MEMORY FOR ANY AI**
 
-> **Live Ecosystem Demo:** [OpenGradient Community](https://opengradient-community.vercel.app/)
+Imagine if ChatGPT, Claude, or any other AI remembered **EVERYTHING** about you: what you like, past conversations, and preferences. MemSync is like a memory cloud that travels with you across different AIs. Everything is encrypted and yours alone.
 
----
+> [**Try MemSync**](https://app.memsync.ai/login)
 
-## 🤖 Terminal AI (Warden Bot)
+### 👥 [Twin.fun](https://Twin.fun)
+**TRADE DIGITAL MINDS**
 
-**Terminal AI** is the autonomous engine powering the OpenGradient forensic capabilities. Built for the **Warden Agent Hub**, it cuts through market noise to provide real-time forensics, risk analysis, and trading insights.
+Trade onchain keys for AI digital twins modeled after real people's ideas. Key value grows with demand via a transparent bonding curve. Unlock chat, debate, and pitch access to these AI minds. Collaborate, learn, and earn from specialized intelligence.
 
-**Key Capabilities:**
-*   **Forensics:** Real-time contract scanning and risk analysis.
-*   **Charting:** Live ASCII charts for market tracking.
-*   **Execution:** Optimized for Base L2 speed and cost.
+> [**Try Twin.fun**](https://Twin.fun)
 
-> **Access Terminal:** `/terminal` (Local) or via the Warden Protocol interface.
+### ⚡ [BitQuant](https://www.bitquant.io/)
+**YOUR PERSONAL AI QUANT**
 
-Designed for the **OpenGradient** ecosystem, this agent represents the next generation of "vibe coding" — robust, secure, and incredibly fast.
+Your personal AI Quant for DeFi. BitQuant leverages advanced machine learning and real-time on-chain data to democratize quantitative analysis. Simply ask in plain English *"Analyze token risk"* or *"Optimize my portfolio"* to get institutional-grade insights, charts, and data-driven strategies instantly.
 
----
-
-## ✨ Visual Intelligence & Forensics
-
-Unlike simple chatbots, this tool doesn't just read prices; it analyzes on-chain behavior in real-time.
-
-*   **🛡️ Security First:** Instant `Risk Analysis` scans contracts for honeypots and rug pulls before you trade.
-*   **🐋 Whale Watch:** Live monitoring of large transactions (>$500). See what the "smart money" is doing in real-time.
-*   **📈 Live Terminal Charts:** Generate instant ASCII price charts for **ETH, BTC, SOL** and any **Base Token** directly in the command line.
-*   **⚡ Speed:** Optimized for the Base L2 network — cheap gas, fast data, instant insights.
-*   **🌉 Onboarding:** Direct access to the best bridges (Relay, Jumper, deBridge) to get funds onto Base in seconds.
+> [**Try BitQuant**](https://www.bitquant.io/)
 
 ---
 
-## 🚀 Features & Commands
+## 🚀 Why is this important for beginners?
 
-Interact with the agent using natural language or these specific commands:
-
-| Feature | Command / Trigger | Description |
-| :--- | :--- | :--- |
-| **🔥 Market Trends** | `Trend` / `Hot` | Shows top trending tokens on Base live. |
-| **📈 Live Charts** | `Chart <token>` | **Real-Time:** ASCII price charts (e.g., `Chart ETH`, `Chart BRETT`). |
-| **🚀 Top Gainers** | `Gainers` / `Top` | Lists the biggest 24h movers. |
-| **🛡️ Risk Scanner** | `Risk <token>` | Performs a security audit (Honeypot, liquidity, verified contract). |
-| **🐋 Whale Watch** | `Whale <token>` | **Killer Feature:** Tracks live large buy/sell orders (>$500). |
-| **💰 Portfolio** | `DeBank <address>` | Full multi-chain wallet analysis via DeBank. |
-| **⛽ Gas Station** | `Gas` | Real-time Base gas fees & swap cost estimates. |
-| **🌾 Yield Search** | `Yield` | Finds the best APY farming pools on Base. |
-| **🌐 Warden Info** | `Menu` | Official Warden Protocol resources (Discord, Link3). |
+- 🟢 **Free tools to start in Web3 and AI**
+- 🟢 **Your personal AI Quant for DeFi with institutional-grade insights**
+- 🟢 **Control your attention and memory**
+- 🟢 **Everything is open, transparent, and secure thanks to blockchain**
 
 ---
 
-## 🛠️ Tech Stack
+## 💬 Community
 
-Built strictly adhering to the **Warden Protocol** standards for the Agent Developer Incentive Program.
+If something isn't clear or you want to learn more, join the official community! Ask questions, get help, and meet other beginners.
 
-*   **Orchestration:** [LangGraph](https://langchain-ai.github.io/langgraph/) (Stateful, multi-turn agent logic)
-*   **Blockchain SDK:** `@wardenprotocol/warden-agent-kit-core`
-*   **LLM Integration:** `@wardenprotocol/warden-langchain`
-*   **Frontend:** Next.js 16 + Tailwind CSS 4 (Terminal UI)
-*   **Network:** Base (EVM)
+[![Join Discord](https://img.shields.io/badge/Discord-Join%20OpenGradient-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/opengradient)
 
 ---
 
-## ⚡ Getting Started
+### 🔗 Official Links
 
-### Prerequisites
-*   Node.js (v18+)
-*   A Warden Agent Wallet Private Key (EVM)
-*   OpenAI API Key
-
-### Installation
-
-1.  **Clone the Repository**
-    ```bash
-    git clone https://github.com/ogeth777/OpenGradient.git
-    cd OpenGradient
-    ```
-
-2.  **Install Dependencies**
-    ```bash
-    npm install
-    ```
-
-3.  **Configure Environment**
-    Create a `.env` file in the root directory:
-    ```env
-    OPENAI_API_KEY=sk-your-key-here
-    PRIVATE_KEY=0x... (Your Agent's Wallet Private Key)
-    ```
-
-4.  **Run the Agent**
-    ```bash
-    npm run dev
-    ```
+- [**Website**](https://opengradient.ai)
+- [**Twitter / X**](https://twitter.com/OpenGradient)
+- [**GitHub**](https://github.com/OpenGradient)
 
 ---
 
-## 🔮 Roadmap
-
-*   **Autonomous Swaps:** Agent-driven trading execution.
-*   **Multi-Chain Support:** Expanding forensics to Arbitrum and Solana.
-*   **Automated Alerts:** Push notifications for whale movements.
-*   **OpenGradient Integration:** Advanced decentralized compute for risk modeling.
-
----
-
-## 📄 License
-
-MIT License. Built for the Warden Protocol Community.
+<p align="center">
+  <small>Made by <a href="https://twitter.com/OG_Cryptooo">@OG_Cryptooo</a> | Built on <a href="https://twitter.com/OpenGradient">@OpenGradient</a> 🚀</small>
+</p>
