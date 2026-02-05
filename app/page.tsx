@@ -49,7 +49,10 @@ export default function Home() {
                 <h3 className="text-2xl font-bold text-white">MemSync</h3>
                 <p className="text-xs font-bold tracking-wider text-purple-400 uppercase mb-4">YOUR ETERNAL MEMORY FOR ANY AI</p>
                 
-                <div className="mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/50 aspect-video relative group-hover:border-purple-500/50 transition-all">
+                <div 
+                    onClick={() => openVideo("/MemSync.mp4")}
+                    className="mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/50 aspect-video relative group-hover:border-purple-500/50 transition-all cursor-pointer"
+                >
                      <video src="/MemSync.mp4" className="w-full h-full object-cover opacity-80" autoPlay muted loop playsInline />
                 </div>
 
@@ -57,12 +60,14 @@ export default function Home() {
                     Imagine if ChatGPT, Claude, or any other AI remembered EVERYTHING about you: what you like, past conversations. MemSync is like a memory cloud that travels with you across different AIs. Everything is encrypted and yours alone.
                 </p>
 
-                <button 
-                    onClick={() => openVideo("/MemSync.mp4")}
+                <a 
+                    href="https://www.opengradient.ai/memsync"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-full py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:bg-white/10 hover:border-purple-500/50 transition-all flex items-center justify-center gap-2"
                 >
                     Try It <ExternalLink className="h-4 w-4" />
-                </button>
+                </a>
             </div>
 
             {/* Twin.fun Card */}
@@ -73,7 +78,10 @@ export default function Home() {
                 <h3 className="text-2xl font-bold text-white">Twin.fun</h3>
                 <p className="text-xs font-bold tracking-wider text-pink-400 uppercase mb-4">TRADE DIGITAL MINDS</p>
                 
-                <div className="mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/50 aspect-video relative group-hover:border-pink-500/50 transition-all">
+                <div 
+                    onClick={() => setVideoSrc(null)} // No video for Twin.fun, maybe open image? Or do nothing? Actually user said "videos must be clickable". Twin.fun has an image.
+                    className="mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/50 aspect-video relative group-hover:border-pink-500/50 transition-all"
+                >
                      <img src="/Twin.fun.PNG" alt="Twin.fun" className="w-full h-full object-cover opacity-90 hover:scale-105 transition-transform duration-500" />
                 </div>
 
@@ -99,7 +107,10 @@ export default function Home() {
                 <h3 className="text-2xl font-bold text-white">BitQuant</h3>
                 <p className="text-xs font-bold tracking-wider text-cyan-400 uppercase mb-4">YOUR PERSONAL AI QUANT</p>
                 
-                <div className="mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/50 aspect-video relative group-hover:border-cyan-500/50 transition-all">
+                <div 
+                    onClick={() => openVideo("/BITQUAN.mp4")}
+                    className="mb-6 overflow-hidden rounded-lg border border-white/10 bg-black/50 aspect-video relative group-hover:border-cyan-500/50 transition-all cursor-pointer"
+                >
                      <video src="/BITQUAN.mp4" className="w-full h-full object-cover opacity-80" autoPlay muted loop playsInline />
                 </div>
 
@@ -107,12 +118,14 @@ export default function Home() {
                     Your personal AI Quant for DeFi. BitQuant leverages advanced machine learning and real time on chain data to democratize quantitative analysis. Simply ask in plain English 'Analyze token risk' or 'Optimize my portfolio' to get institutional grade insights, charts, and data driven strategies instantly.
                 </p>
 
-                <button 
-                    onClick={() => openVideo("/BITQUAN.mp4")}
+                <a 
+                    href="https://github.com/OpenGradient/BitQuant"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="w-full py-3 rounded-xl border border-white/10 bg-white/5 text-sm font-semibold text-white hover:bg-white/10 hover:border-cyan-500/50 transition-all flex items-center justify-center gap-2"
                 >
                     Try It <ExternalLink className="h-4 w-4" />
-                </button>
+                </a>
             </div>
 
         </div>
@@ -166,13 +179,13 @@ export default function Home() {
             </div>
             
             <div className="flex gap-8 text-sm text-gray-500 mb-8">
-                <a href="#" className="hover:text-cyan-400 transition-colors">Website</a>
-                <a href="#" className="hover:text-cyan-400 transition-colors">Twitter / X</a>
-                <a href="https://github.com/ogeth777/OpenGradient" className="hover:text-cyan-400 transition-colors">GitHub</a>
+                <a href="https://www.opengradient.ai/" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Website</a>
+                <a href="https://twitter.com/OpenGradient" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">Twitter / X</a>
+                <a href="https://github.com/ogeth777/OpenGradient" target="_blank" rel="noopener noreferrer" className="hover:text-cyan-400 transition-colors">GitHub</a>
             </div>
             
             <p className="text-xs text-gray-600">
-                Made by <span className="text-cyan-500">@OG_Cryptooo</span> | Built on <span className="text-purple-500">@OpenGradient</span> 🚀
+                Made by <a href="https://twitter.com/OG_Cryptooo" target="_blank" rel="noopener noreferrer" className="text-cyan-500 hover:underline">@OG_Cryptooo</a> | Built on <a href="https://twitter.com/OpenGradient" target="_blank" rel="noopener noreferrer" className="text-purple-500 hover:underline">@OpenGradient</a> 🚀 (v1.1)
             </p>
         </footer>
 
