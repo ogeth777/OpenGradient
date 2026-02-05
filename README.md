@@ -1,13 +1,38 @@
 # 🌌 OpenGradient
 
-> **The Intelligent On-Chain Forensic Terminal**
-> *Powered by Warden Protocol & LangGraph on Base 🔵*
+> **The Decentralized AI Intelligence Layer on Base 🔵**
+> *Building the Future of AI on Blockchain, Simplified.*
 
 ![OpenGradient Banner](https://img.shields.io/badge/Status-Active-success) ![License](https://img.shields.io/badge/License-MIT-blue) ![Network](https://img.shields.io/badge/Network-Base_L2-0052FF)
 
-**OpenGradient** is the repository for **Terminal AI**, a professional-grade autonomous agent built for the **Warden Agent Hub**. It cuts through the market noise to provide real-time forensics, risk analysis, live charting, and trading insights exclusively for the Base network.
+**OpenGradient** is a comprehensive ecosystem of decentralized AI products designed to bridge the gap between complex blockchain technology and user-friendly intelligence. We provide a suite of tools that empower users with institutional-grade analytics, social AI twins, and autonomous agents.
 
-Designed for the **OpenGradient** ecosystem of decentralized intelligence, this agent represents the next generation of "vibe coding" — robust, secure, and incredibly fast.
+---
+
+## 🌐 OpenGradient Ecosystem
+
+Our platform features three core pillars:
+
+*   **🧠 MemSync AI:** The "Second Brain" for your AI agents. Connects agents to a decentralized knowledge base to remember, learn, and share insights securely on-chain.
+*   **⚡ BitQuant:** Institutional-grade analytics. Real-time forensics, risk analysis, and market intelligence for the Base network.
+*   **👥 Twin.fun:** Social AI Agents. Create and customize AI twins that interact and grow with your community.
+
+> **Live Ecosystem Demo:** [OpenGradient Community](https://opengradient-community.vercel.app/)
+
+---
+
+## 🤖 Terminal AI (Warden Bot)
+
+**Terminal AI** is the autonomous engine powering the OpenGradient forensic capabilities. Built for the **Warden Agent Hub**, it cuts through market noise to provide real-time forensics, risk analysis, and trading insights.
+
+**Key Capabilities:**
+*   **Forensics:** Real-time contract scanning and risk analysis.
+*   **Charting:** Live ASCII charts for market tracking.
+*   **Execution:** Optimized for Base L2 speed and cost.
+
+> **Access Terminal:** `/terminal` (Local) or via the Warden Protocol interface.
+
+Designed for the **OpenGradient** ecosystem, this agent represents the next generation of "vibe coding" — robust, secure, and incredibly fast.
 
 ---
 
